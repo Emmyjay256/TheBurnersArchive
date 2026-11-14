@@ -1,0 +1,66 @@
+/* Black, white and grey only. Colour appears ONLY where fires are shown or told apart (map spots, legend swatches, calendar status dots). */
+:root {
+  --bg: #ffffff; --card: #f7f7f7; --card2: #ececec; --line: #d4d4d4; --fg: #0a0a0a; --muted: #6b6b6b;
+  --inv: #0a0a0a; --inv-fg: #ffffff; --glass: rgba(255, 255, 255, .92); --fg-rgb: 10, 10, 10; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a; --card: #141414; --card2: #232323; --line: #363636; --fg: #f4f4f4; --muted: #9b9b9b;
+    --inv: #f4f4f4; --inv-fg: #0a0a0a; --glass: rgba(14, 14, 14, .92); --fg-rgb: 244, 244, 244; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0a0a; --card: #141414; --card2: #232323; --line: #363636; --fg: #f4f4f4; --muted: #9b9b9b;
+  --inv: #f4f4f4; --inv-fg: #0a0a0a; --glass: rgba(14, 14, 14, .92); --fg-rgb: 244, 244, 244; color-scheme: dark;
+}
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.page { background: var(--bg); color: var(--fg); }
+.card { background: var(--card); border: 1px solid var(--line); }
+.card2 { background: var(--card2); }
+.glass { background: var(--glass); border: 1px solid var(--line); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(0, 0, 0, .16); }
+.muted { color: var(--muted); }
+.bd { border-color: var(--line); }
+.btn { background: var(--inv); color: var(--inv-fg); font-weight: 600; }
+.btn:hover { opacity: .85; }
+.ghost { background: var(--card2); color: var(--fg); }
+.ghost:hover { background: var(--line); }
+.on { background: var(--inv) !important; color: var(--inv-fg) !important; }
+.field { background: var(--card2); color: var(--fg); border: 1px solid var(--line); }
+.field::placeholder { color: var(--muted); }
+.track { background: var(--card2); }
+.fillbar { background: var(--fg); }
+.sel { outline: 2px solid var(--fg); outline-offset: 1px; }
+:where(a, button, input, textarea, select):focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+/* ---- first-visit tour ---- */
+@keyframes tour-ping { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes tour-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+@keyframes tour-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.tour-ring { position: fixed; border: 2px solid #fff; pointer-events: none; animation: tour-ping 1.6s ease-out infinite; }
+.tour-card { animation: tour-in .25s ease-out; }
+@media (prefers-reduced-motion: reduce) { .tour-ring, .tour-card, .tour-bob { animation: none !important; } }
+
+/* ---- Spark, the guide ---- */
+.spark { display: inline-block; pointer-events: none; }
+.spark-body { width: 100%; height: 100%; transform-origin: 50% 100%; }
+.spark-dance { animation: spark-dance 1.3s ease-in-out infinite; }
+.spark-cheer { animation: spark-cheer .8s ease-in-out infinite; }
+@keyframes spark-dance { 0%, 100% { transform: translateY(0) rotate(-3deg) scale(1, 1); } 25% { transform: translateY(-7px) rotate(3deg) scale(.97, 1.04); } 50% { transform: translateY(0) rotate(-1deg) scale(1.04, .96); } 75% { transform: translateY(-5px) rotate(4deg) scale(.98, 1.03); } }
+@keyframes spark-cheer { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-14px) scale(.95, 1.07); } }
+.spark-eyes { transform-origin: 60px 54px; animation: spark-blink 4.2s infinite; }
+@keyframes spark-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+.spark-tuft { transform-box: fill-box; transform-origin: 50% 100%; animation: spark-flicker .8s ease-in-out infinite alternate; }
+.spark-tuft.b { animation-duration: 1.05s; animation-delay: -.3s; }
+@keyframes spark-flicker { from { transform: scale(1, 1) skewX(-4deg); } to { transform: scale(.9, 1.18) skewX(5deg); } }
+.spark-wave { animation: spark-wave .7s ease-in-out infinite alternate; }
+@keyframes spark-wave { from { transform: rotate(-95deg); } to { transform: rotate(-55deg); } }
+.spark-cheer-arm { animation: spark-cheer-arm .8s ease-in-out infinite alternate; }
+@keyframes spark-cheer-arm { from { transform: rotate(-110deg); } to { transform: rotate(-70deg); } }
+@media (prefers-reduced-motion: reduce) { .spark-dance, .spark-cheer, .spark-eyes, .spark-tuft, .spark-wave, .spark-cheer-arm, .spark-leg { animation: none !important; } }
+
+/* Spark's dancing legs */
+.spark-leg { animation: spark-step .65s ease-in-out infinite alternate; }
+.spark-leg.l { transform-origin: 50px 118px; }
+.spark-leg.r { transform-origin: 70px 118px; animation-direction: alternate-reverse; }
+@keyframes spark-step { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }

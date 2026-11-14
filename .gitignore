@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+backend/data/raw/
+backend/pipeline/__pycache__/
+backend/pipeline/venv/
+
+# Build outputs
+frontend/dist/
+backend/dist/
+
+# Large raw NASA FIRMS datasets (Keep repository lightweight!)
+*.csv
+*.json.gz
+
+
+# Environment variables & local OS junk
+.env
+.env.local
+.DS_Store
+*.log
+
+
+# Harmonization temp files (disk-backed streaming, ~3 GB during a run, auto-deleted on success)
+backend/data/hrm_*.bin
+hrm_*.bin
+*.bin.tmp
+
+# Harmonization outputs — big (world run ≈ 200–350 MB). Uncomment if you don't want them in git.
+# backend/data/processed/
+# backend/data/processed/world_*.json
+# backend/data/processed/world_*.bin
+# backend/data/processed/world_*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# macOS / editors
+.vscode/
+.idea/
