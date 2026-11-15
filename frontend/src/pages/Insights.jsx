@@ -11,7 +11,6 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
-import { CalendarDays, Map as MapIcon, BarChart3 } from 'lucide-react';
 
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
