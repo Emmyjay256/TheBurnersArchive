@@ -68,8 +68,8 @@ function StartupRedirect() {
     if (done.current) return;
     done.current = true;
     if (s.startView === 'countries' && window.location.pathname === '/') {
-      navigate('/countries', { replace: true });
-    }
+  navigate('/country-footprints', { replace: true });
+}
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
@@ -91,8 +91,8 @@ function Shell() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Treat /countries (and /country-footprints) as part of the Explore tab, so the rail's "Explore" stays lit.
-  const isMapView = pathname === '/' || pathname === '/countries';
+  // Treat /country-footprints as part of the Explore tab, so the rail's "Explore" stays lit.
+  const isMapView = pathname === '/' || pathname === '/country-footprints';
 
   useEffect(() => { log('route', 'now on', pathname); if (!isMapView) setSelected(null); }, [pathname, isMapView, setSelected]);
   useEffect(() => { if (tour && !isMapView) navigate('/'); }, [tour]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -142,15 +142,16 @@ function Shell() {
             </div>
           )}
 
+          {/* AiHost lives OUTSIDE <Routes> — it's a persistent overlay, not a route. */}
+          <AiHost />
+
           <Routes>
-            <AiHost />
             <Route path="/" element={<Explore />} />
             <Route path="/calendar" element={<BurningCalendar />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/advanced" element={<AdvancedInsights />} />
             <Route path="/settings" element={<Settings />} />
-            {/* Both paths render the gallery so old links and the new switch both work */}
-            <Route path="/countries" element={<CountryFootprints />} />
+            <Route path="/country-footprints" element={<CountryFootprints />} />
             <Route path="/insights/methodology" element={<Methodology />} />
           </Routes>
         </div>

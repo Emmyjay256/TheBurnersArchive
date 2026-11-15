@@ -92,7 +92,7 @@ export default function CountryFootprints() {
               role="tab"
               aria-selected
               title="Browse fire maps by country"
-              onClick={() => navigate('/countries')}
+              onClick={() => navigate('/country-footprints')}
               className="on rounded-full px-3 py-1.5 text-sm font-semibold"
             >
               Countries
