@@ -16,9 +16,7 @@ const DATA_LINKS = [
     what: 'After our cleaning rules: one row per 0.1 degree cell, month and satellite, with fire count, fire days, summed and maximum FRP, and daytime count.' },
   { group: 'processed', title: 'Uganda district monthly series', format: 'Parquet', url: '',
     what: 'Monthly detections and fire power for every Uganda district and county, kept separate per satellite.' },
-  { group: 'harmonised', title: 'Pipeline A output for Uganda', format: 'JSON and binary', url: '',
-    what: 'The VIIRS-scale monthly series with its uncertainty band, the map cells with their usual range, and the list of fire-prone places.' },
-  { group: 'harmonised', title: 'Pipeline B output for Uganda', format: 'Binary (.bin) and JSON', url: '',
+  { group: 'harmonised', title: 'Harmonized output location using Pipeline B', format: 'Binary (.bin) and JSON', url: '',
     what: 'Overlap edges, group members and group summaries per year, plus the summary file that describes the run.' },
 ];
 
