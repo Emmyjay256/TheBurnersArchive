@@ -1,0 +1,88 @@
+{
+  "dataset": "CSV fire detections",
+  "input_folder": "/content/drive/MyDrive/Processed data",
+  "output_folder": "/content/drive/MyDrive/hotspot_analysis_csv/run_20261114_222719",
+  "total_detections": 601802067,
+  "valid_dated_detections": 601802067,
+  "invalid_or_out_of_range_dates": 0,
+  "available_years": [
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "months_with_nonzero_detections": 301,
+  "highest_month": {
+    "month": "2024-08",
+    "detections": 11283067
+  },
+  "lowest_month_in_available_years": {
+    "month": "2000-01",
+    "detections": 0
+  },
+  "highest_seasonal_month": {
+    "month": "August",
+    "average_detections": 3273424.346153846
+  },
+  "lowest_seasonal_month": {
+    "month": "May",
+    "average_detections": 1378531.8076923077
+  },
+  "metrics": {
+    "brightness": {
+      "count": 601802067,
+      "sum": 200434955387.9265,
+      "min": 0.0,
+      "max": 510.5,
+      "mean": 333.05793778193606,
+      "median": 335.20001220703125
+    },
+    "bright_t31": {
+      "count": 601802067,
+      "sum": 180096276302.12927,
+      "min": 0.0,
+      "max": 425.3599853515625,
+      "mean": 299.26164461334304,
+      "median": 300.1000061035156
+    },
+    "frp": {
+      "count": 601802067,
+      "sum": 9795051462.460745,
+      "min": -59.20000076293945,
+      "max": 16146.400390625,
+      "mean": 16.27620109596723,
+      "median": 6.53000020980835
+    }
+  },
+  "brightness_t31_pearson_correlation": 0.5755875129300516,
+  "paired_measurements": 601802067,
+  "notes": [
+    "All detections counted independently; no unique-fire deduplication.",
+    "No country mapping or spatial aggregation performed.",
+    "Exact medians refer to finite float32 values parsed from the CSV.",
+    "FRP totals sum detected pixel FRP values; they are not energy integrals.",
+    "Seasonal averages use all months of years containing at least one dated detection."
+  ]
+}
