@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Viewer } from 'resium';
 import {
-  Cartesian3, Cartographic, ClassificationType, Color, CustomDataSource, HeightReference, ImageryLayer, Math as CesiumMath,
+  Cartesian3, Cartographic, ClassificationType, Color, CustomDataSource, Ellipsoid, EllipsoidalOccluder, HeightReference, ImageryLayer, Math as CesiumMath,
   UrlTemplateImageryProvider, ScreenSpaceEventHandler, ScreenSpaceEventType, Terrain, VerticalOrigin
 } from 'cesium';
 import { FLAME_PATH } from './FlameIcon';
@@ -46,6 +46,7 @@ function circle(lat, lon, km) { // points of a circle on the globe, for the prox
 
 // ---- what part of the world is on screen ----
 const WORLD = [-180, -90, 180, 90];
+const DATED_MAX_SPAN = 6;   // the server only serves a picked past day for views up to this wide (degrees)
 const clampBox = (b) => [Math.max(-180, b[0]), Math.max(-90, b[1]), Math.min(180, b[2]), Math.min(90, b[3])];
 const insideBox = (inner, outer) => inner[0] >= outer[0] && inner[1] >= outer[1] && inner[2] <= outer[2] && inner[3] <= outer[3];
 function padBox(b, f = 0.4) { const dx = (b[2] - b[0]) * f, dy = (b[3] - b[1]) * f; return clampBox([b[0] - dx, b[1] - dy, b[2] + dx, b[3] + dy]); }
@@ -86,6 +87,28 @@ export default function Globe({ active, serverReady }) {
 
       const ds = new CustomDataSource('fires'), ring = new CustomDataSource('selected'), prox = new CustomDataSource('proximity');
       [prox, ds, ring].forEach((d) => v.dataSources.add(d)); v.__ring = ring; v.__prox = prox;
+
+      // The fire icons and the selection ring are always drawn on top, so if they appear before the globe has painted
+      // they float in empty space. Keep them hidden until Cesium reports that the first tiles for this view have loaded.
+      // After the first reveal they stay visible, so later tile loading never makes them flicker.
+      let revealed = false;
+      const reveal = (why) => { if (revealed) return; revealed = true; ds.show = true; ring.show = true; log('globe', `fires revealed (${why})`); };
+      ds.show = false; ring.show = false;
+      v.scene.globe.tileLoadProgressEvent.addEventListener((remaining) => { if (remaining === 0) reveal('globe tiles loaded'); });
+      setTimeout(() => reveal('10 s fallback'), 10000);   // never leave the fires hidden on a slow connection
+
+      // The icons ignore the depth buffer (so terrain never clips them), which also lets fires on the far side of the planet
+      // show through the globe. So each fire is hidden while it is beyond the horizon as seen from the camera.
+      const horizon = () => {
+        const occluder = new EllipsoidalOccluder(Ellipsoid.WGS84, v.camera.positionWC);
+        ds.entities.suspendEvents();
+        for (const e of ds.entities.values) {
+          const visible = occluder.isPointVisible(e.fireXyz);
+          if (e.show !== visible) e.show = visible;
+        }
+        ds.entities.resumeEvents();
+      };
+
       // data = the last good answer from the server. It is only ever replaced by another answer, never cleared by a failed or slow request.
       let data = null, timer, ctrl, retry, last = null, inflightSig = '', waits = 0;
 
@@ -103,13 +126,16 @@ export default function Globe({ active, serverReady }) {
             if (area && insideAoi(area, it.lat, it.lon)) near[kind] += Math.max(1, Math.round(it.harm ?? it.n ?? 1));
             if (!L[kind]) continue;
             const px = flameSize(it.harm ?? it.n, kind === 'live');
-            const e = ds.entities.add({ position: Cartesian3.fromDegrees(it.lon, it.lat),
+            const xyz = Cartesian3.fromDegrees(it.lon, it.lat);
+            const e = ds.entities.add({ position: xyz,
               billboard: { image: icon, width: px, height: px, verticalOrigin: VerticalOrigin.CENTER, heightReference: ground, disableDepthTestDistance: Number.POSITIVE_INFINITY } });
             e.fireData = { ...it, kind, cell: data?.cell || 0 };
+            e.fireXyz = xyz;
           }
         }
         ds.entities.resumeEvents();
-        live.current.setStats({ ...counts, near, note: data?.note || null, outside: !!data?.outside, warming: false, loaded: !!data });
+        horizon();   // hide the ones behind the planet right away
+        live.current.setStats({ ...counts, near, note: data?.note || null, outside: !!data?.outside, tooWide: !!data?.tooWide, warming: false, loaded: !!data });
       };
 
       load.current = async (isRetry = false, force = false) => {
@@ -124,6 +150,19 @@ export default function Globe({ active, serverReady }) {
         }
         waits = 0;
         const { box: viewBox, span } = currentView(v);
+
+        // A picked past day can only be fetched zoomed in (the server refuses wide views), so don't ask: just show that state.
+        // The Explore screen shows a chip saying which day is picked and how to go back to live.
+        if (dt && span > DATED_MAX_SPAN) {
+          ctrl?.abort(); inflightSig = ''; last = null;
+          if (!(data?.tooWide && data.date === dt)) {
+            data = { live: [], history: [], expected: [], tooWide: true, date: dt, note: null };
+            log('fires', `showing ${dt}: zoom in to see it (the view is ${span.toFixed(1)}° wide)`);
+            draw.current();
+          }
+          return;
+        }
+
         const L = last;
         // The last answer covered a padded box. Reuse it while the view stays inside that box and the zoom has not changed much.
         const reuse = !force && !isRetry && L && L.mode === md && L.date === dt && insideBox(viewBox, L.box) && span <= L.span * 2 && span >= L.span / 2 && Date.now() - L.at < 5 * 60e3;
@@ -145,7 +184,7 @@ export default function Globe({ active, serverReady }) {
             clearTimeout(retry); retry = setTimeout(() => load.current(true), 6000); return;
           }
           if (j.tooWide || j.outside) {   // only a picked past date can be too wide: say so instead of showing live fires under a past date
-            data = { ...j, live: [], history: [], expected: [] }; last = null;
+            data = { ...j, live: [], history: [], expected: [], note: null }; last = null;
             log('fires', 'cleared:', j.note);
             draw.current(); return;
           }
@@ -162,7 +201,10 @@ export default function Globe({ active, serverReady }) {
         }
       };
 
-      v.camera.moveEnd.addEventListener(() => { clearTimeout(timer); waits = 0; timer = setTimeout(() => load.current(), 500); });
+      // re-check what is in front of the planet as the camera rotates or zooms (fires every ~2% of camera movement)
+      v.camera.percentageChanged = 0.02;
+      v.camera.changed.addEventListener(horizon);
+      v.camera.moveEnd.addEventListener(() => { horizon(); clearTimeout(timer); waits = 0; timer = setTimeout(() => load.current(), 500); });
       setInterval(() => { if (!document.hidden) load.current(false, true); }, 5 * 60e3);   // pick up fresh detections without moving the camera
       new ScreenSpaceEventHandler(v.scene.canvas).setInputAction((m) => {
         if (live.current.drawing) {
