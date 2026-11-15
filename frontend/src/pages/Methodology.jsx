@@ -6,14 +6,11 @@ import { ArrowLeft, Check, Copy, Download, ExternalLink, Info } from 'lucide-rea
 import scriptA from './data/code/harmonize_from_bins.py?raw';
 import scriptB from './data/code/fast_modis_viirs_harmonization.py?raw';
 
-/* =====================================================================
-   EDIT HERE: Google Drive links. Leave url as '' until a link exists;
-   the card then shows "Link coming soon" instead of a button.
-   ===================================================================== */
+
 const DATA_LINKS = [
-  { group: 'raw', title: 'Uganda raw detections: MODIS', format: 'CSV, 15 columns', url: '',
+  { group: 'raw', title: 'Uganda raw detections: MODIS', format: 'CSV, 15 columns', url: https://drive.google.com/drive/folders/1f951lFK2EYqJnVjtFUpKzsl5X88S7mny?usp=sharing'',
     what: 'Terra and Aqua active-fire records for Uganda, exactly as downloaded from NASA FIRMS. Start here if you want to clean and grid the data yourself.' },
-  { group: 'raw', title: 'Uganda raw detections: VIIRS', format: 'CSV, 15 columns', url: '',
+  { group: 'raw', title: 'Uganda raw detections: VIIRS', format: 'CSV, 15 columns', url: https://drive.google.com/drive/folders/1Hv3GMRgiE96oonZp5zNmHGty61k_-IQk?usp=sharing'',
     what: 'S-NPP, NOAA-20 and NOAA-21 active-fire records for Uganda, exactly as downloaded from NASA FIRMS.' },
   { group: 'processed', title: 'Uganda cleaned and gridded data', format: 'Parquet', url: '',
     what: 'After our cleaning rules: one row per 0.1 degree cell, month and satellite, with fire count, fire days, summed and maximum FRP, and daytime count.' },
@@ -25,22 +22,23 @@ const DATA_LINKS = [
     what: 'Overlap edges, group members and group summaries per year, plus the summary file that describes the run.' },
 ];
 
-/* =====================================================================
-   EDIT HERE: what each platform was used for. Please confirm these lines.
-   ===================================================================== */
+
 const TOOLS = [
   { name: 'Google Colab', kind: 'Free cloud notebook',
-    used: 'The main workhorse. Python with DuckDB summarised the 50 raw CSV files one at a time into the grid, and GeoPandas with pyogrio tagged every cell with its country, district and county.',
+    used: 'The main workhorse. Python with DuckDB summarised the 50 raw CSV files into the grid, processed the data to get tables for graphing and WebP images, and used GeoPandas with pyogrio to tag every cell with its country, district, and county.',
     limits: 'Sessions reset and the disk is temporary, so every step saved its result back to Google Drive and could resume where it stopped. Reading big files through the Drive connection was much slower than a local disk.' },
   { name: 'Kaggle notebooks', kind: 'Free cloud notebook',
-    used: 'Extra processing capacity next to Colab. It was our first plan for the main pipeline.',
-    limits: 'Internet access in notebooks needs phone verification, which is why the main pipeline ran on Colab instead.' },
+    used: 'Also processed data to get tables for graphing and WebP images, serving as extra computing power next to Colab.',
+    limits: 'Could not easily access Google Drive by mounting, and download quotas for Drive public links ran out.' },
   { name: 'Google Cloud VM', kind: 'Rented virtual machine',
-    used: 'For long or memory-hungry jobs that do not fit in a free notebook session.',
-    limits: 'Billed by the hour, so it is used for a job and then switched off.' },
+    used: 'Used $300 credits for testing the datasets.',
+    limits: 'Credits were set to expire soon, and even new accounts required a $30 prepayment before unlocking the $300 credits.' },
   { name: 'GitHub Codespaces', kind: 'Browser-based dev environment',
-    used: 'Writing and testing the pipeline code and the app from any browser, on GitHub servers instead of our own laptops.',
+    used: 'Used mainly for deployment and partial processing of data, offering a smoother environment for faster deployment to Firebase Hosting.',
     limits: 'Meant for development. Hours are limited, so the heavy runs happen elsewhere.' },
+  { name: 'Azure Web Apps', kind: 'Cloud hosting service',
+    used: 'Hosted the Node backend to provide endpoints for the processed data and securely handle AI API keys.',
+    limits: 'Dependent on configured cloud environment variables for runtime security.' },
   { name: 'Local machines', kind: 'Our own laptops',
     used: 'Light checks, editing scripts, and building the app.',
     limits: 'Too small for a 45 GB archive. This is the reason the heavy work moved online.' },
@@ -115,12 +113,9 @@ const TABS = [
 ];
 
 const PIPELINE = [
-  ['Collect', 'NASA FIRMS active-fire archives (CSV) from five satellites: Terra and Aqua (MODIS), and S-NPP, NOAA-20 and NOAA-21 (VIIRS). 50 files with the same 15 columns, November 2000 to November 2025, for the whole world.'],
-  ['Inspect and clean', 'We looked at sample files first. Then we kept only type 0 (presumed vegetation fire), MODIS confidence of 30 or more, and VIIRS confidence nominal or high. About 17% of the raw detections are removed this way.'],
-  ['Summarise', 'Each CSV was read on its own and reduced to one row per 0.1 degree cell (about 11 km), month and satellite: fire count, fire days, summed and maximum FRP, and daytime count. The raw file was then deleted from the temporary disk. Sorting the result by location made circle queries about 16 times faster.'],
-  ['Tag with places', 'Every cell with fires got its country, district and county from GADM 4.1, using the cell centre. Monthly series were then precomputed for every region.'],
-  ['Harmonize', 'MODIS and VIIRS count fires differently, so we put them on one scale. We built two pipelines for this, described in the Harmonization tab.'],
-  ['Analyse and publish', 'Bulk statistics over the raw files (monthly and yearly counts, FRP, brightness, the 100 most extreme detections, a file audit) feed the Advanced insights page. The harmonized record feeds the main Insights page.'],
+  ['Download', 'Downloaded all data for the five satellites (Terra, Aqua, S-NPP, NOAA-20, and NOAA-21) from FIRMS global data in CSV format in batches of one year each.'],
+  ['Extract and harmonize', 'Extracted the fire detection records and harmonized the multi-satellite data onto a unified scale to account for sensor differences.'],
+  ['Raw analysis', 'Conducted raw analysis directly on the CSVs across different tasks to generate graphing tables, summaries, and WebP visual map assets.'],
 ];
 
 const COMPARE = [
