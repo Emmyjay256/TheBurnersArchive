@@ -11,8 +11,7 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
-import { CalendarDays, Map as MapIcon, BarChart3, Sparkles } from 'lucide-react';
-import { askAi } from '../lib/aiStore';
+import { CalendarDays, Map as MapIcon, BarChart3 } from 'lucide-react';
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
 const yearOf = (m) => +m.slice(0, 4);
@@ -24,19 +23,10 @@ const behind = (end) => (end ? (new Date().getFullYear() - +end.slice(0, 4)) * 1
 const Stat = ({ label: l, value, note }) => (
   <div className="card rounded-2xl p-4"><p className="muted text-xs">{l}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="muted mt-1 text-xs">{note}</p></div>
 );
-const Chart = ({ title, why, children, onAsk }) => (
+const Chart = ({ title, why, children }) => (
   <section className="card rounded-3xl p-5 relative">
-    <div className="flex justify-between items-start gap-4">
-      <div>
-        <h2 className="font-semibold">{title}</h2>
-        <p className="muted mb-4 mt-1 text-sm">{why}</p>
-      </div>
-      {onAsk && (
-        <button onClick={onAsk} className="ghost shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs hover:bg-[var(--card2)] transition-colors">
-          <Sparkles size={14} className="muted" /> Explain
-        </button>
-      )}
-    </div>
+    <h2 className="font-semibold">{title}</h2>
+    <p className="muted mb-4 mt-1 text-sm">{why}</p>
     {children}
   </section>
 );
@@ -123,7 +113,7 @@ export default function Insights() {
       .then((j) => setArea({ key: target.key, status: j.unavailable ? 'unavailable' : 'ready', data: j, error: null }))
       .catch((e) => { if (e.name !== 'AbortError') setArea({ key: target.key, status: 'error', data: null, error: e.message }); });
     return () => ctrl.abort();
-  }, [isWorld, target.ready, target.key, areaTries]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isWorld, target.ready, target.key, areaTries]);
 
   const A = area.key === target.key ? area : { status: 'loading', data: null, error: null };
   const S = !isWorld && A.status === 'ready' ? A.data : null;
@@ -138,7 +128,7 @@ export default function Insights() {
     });
   }, [isWorld, doc, S]);
 
-  useEffect(() => { if (rows.length && !rows.some((d) => d.month === sel)) setSel(pickMonth(rows)); }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (rows.length && !rows.some((d) => d.month === sel)) setSel(pickMonth(rows)); }, [rows]);
 
   const month = sel ? +sel.slice(5) : new Date().getUTCMonth() + 1;
   const year = sel ? yearOf(sel) : new Date().getFullYear();
@@ -245,15 +235,7 @@ export default function Insights() {
   );
 
   const barsChart = (
-    <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}
-      onAsk={() => {
-        const topMonth = [...seasonal].sort((a, b) => b.value - a.value)[0];
-        const bottomMonth = [...seasonal].sort((a, b) => a.value - b.value)[0];
-        askAi(
-          `Explain why fires peak in ${topMonth.name} for ${isWorld ? 'the world' : sc.label}.`,
-          `The peak fire month is ${topMonth.name} with ${topMonth.value} average cell-days. The quietest month is ${bottomMonth.name} with ${bottomMonth.value}.`
-        );
-      }}>
+    <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}>
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
         <BarChart data={seasonal}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} fontSize={11} /><YAxis {...axis} fontSize={11} /><Tooltip {...tip} cursor={{ fill: C.grid }} />
           <Bar dataKey="value" name={isWorld ? 'Avg cell-days' : 'Median cell-days'} shape={({ x, y, width, height, on }) => <rect x={x} y={y} width={width} height={height} rx={4} fill={on ? C.fg : C.muted} opacity={on ? 1 : 0.55} />} /></BarChart></ResponsiveContainer></div>
@@ -261,11 +243,7 @@ export default function Insights() {
   );
 
   const ratiosChart = (
-    <Chart title="The correction, month by month (worldwide)" why="VIIRS sees proportionally more fires in some seasons, so the correction is set per month. The band shows our uncertainty."
-      onAsk={() => {
-        const maxRatio = Math.max(...ratios.map(r => r.ratio));
-        askAi(`Explain how the VIIRS to MODIS correction ratio works.`, `The highest ratio is ${maxRatio}x. This means VIIRS sees ${maxRatio} times more fires than MODIS in that month.`);
-      }}>
+    <Chart title="The correction, month by month (worldwide)" why="VIIRS sees proportionally more fires in some seasons, so the correction is set per month. The band shows our uncertainty.">
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={ratios}><CartesianGrid stroke={C.grid} /><XAxis dataKey="name" {...axis} fontSize={11} /><YAxis {...axis} fontSize={11} domain={[0, 'auto']} /><Tooltip {...tip} />
           <Area dataKey="band" stroke="none" fill={C.fg} fillOpacity={0.12} isAnimationActive={false} /><Line dataKey="ratio" stroke={C.fg} strokeWidth={2} dot={false} name="VIIRS ÷ MODIS" /></ComposedChart></ResponsiveContainer></div>
@@ -278,18 +256,11 @@ export default function Insights() {
       <Stat label="Raw jump removed" value={v.raw_viirs_bias_pct != null ? `+${v.raw_viirs_bias_pct}%` : 'n/a'} note="false rise if sensors were just joined" />
       <Stat label="Backtest accuracy (R²)" value={v.r2 ?? 'n/a'} note="rebuilding hidden VIIRS years" />
       <Stat label="Backtest bias" value={v.bias_pct != null ? `${v.bias_pct}%` : 'n/a'} note="closer to 0 is better" />
-      <button onClick={() => askAi(`Explain what these validation metrics mean.`, `Pooled ratio is ${m.pooled_ratio}x, raw jump removed is ${v.raw_viirs_bias_pct}%, R2 is ${v.r2}, bias is ${v.bias_pct}%.`)} className="absolute -top-3 -right-3 btn h-8 w-8 grid place-items-center rounded-full shadow-lg" title="Ask AI about this">
-        <Sparkles size={14} className="muted" />
-      </button>
     </div>
   );
 
   const backtest = m?.backtest?.length > 0 && (
-    <Chart title="How we chose the gap-filling rule" why={`Places VIIRS sees burning year after year while MODIS sees nothing are MODIS-blind. Chosen: ${m.rule_text?.[m.chosen_rule] || m.chosen_rule}.`}
-      onAsk={() => {
-        const chosen = m.backtest.find(b => b.rule === m.chosen_rule);
-        askAi(`Explain the gap-filling rule selection.`, `We chose "${m.chosen_rule}" because it had the lowest bias (${chosen?.bias_pct}%) and highest R2 (${chosen?.r2}).`);
-      }}>
+    <Chart title="How we chose the gap-filling rule" why={`Places VIIRS sees burning year after year while MODIS sees nothing are MODIS-blind. Chosen: ${m.rule_text?.[m.chosen_rule] || m.chosen_rule}.`}>
       <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead><tr className="muted text-left text-xs"><th className="py-1.5">Method</th><th>Bias</th><th>Typical error</th><th>R²</th></tr></thead>
         <tbody>{m.backtest.map((b) => (
@@ -312,15 +283,7 @@ export default function Insights() {
 
   const worldMain = doc && (<>
     {validationTiles}
-    <Chart title="One record from two satellites (whole world)" why="Tap any month to select it. The bold line is the harmonized record on VIIRS's scale: before 2012 it is MODIS corrected place by place. The shaded band is our uncertainty."
-      onAsk={() => {
-        const pre2012 = rows.filter(r => r.month < '2012-01');
-        const post2012 = rows.filter(r => r.month >= '2012-01');
-        askAi(
-          `Explain the trend in this chart. Why does the data look different before and after 2012?`,
-          `MODIS was the only satellite before 2012. VIIRS joined in 2012. The average fires before 2012 was ~${Math.round(pre2012.reduce((a,b) => a+(b.harmonized||0),0)/pre2012.length)} cell-days. After 2012, it jumped to ~${Math.round(post2012.reduce((a,b) => a+(b.harmonized||0),0)/post2012.length)}.`
-        );
-      }}>
+    <Chart title="One record from two satellites (whole world)" why="Tap any month to select it. The bold line is the harmonized record on VIIRS's scale: before 2012 it is MODIS corrected place by place. The shaded band is our uncertainty.">
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} onClick={(e) => e?.activeLabel && setSel(e.activeLabel)} style={{ cursor: 'pointer' }}>
           <CartesianGrid stroke={C.grid} /><XAxis dataKey="month" tickFormatter={(x) => x.slice(0, 4)} minTickGap={40} {...axis} /><YAxis {...axis} />
@@ -347,11 +310,7 @@ export default function Insights() {
       <Stat label="Long-term trend" value={S.trend?.pctPerDecade == null ? 'n/a' : signed(S.trend.pctPerDecade)} note={S.trend ? `per decade, ${S.trend.from} to ${S.trend.to}` : 'not enough full years'} />
       <Stat label="Busiest months" value={S.peakMonths.map((p) => MON[p.month - 1]).join(', ')} note="highest usual activity" />
     </div>
-    <Chart title={`Fire activity in ${sc.label}`} why="Tap any month to select it. The bold line is monthly activity on VIIRS's scale (before 2012 it is MODIS corrected place by place). The shaded band is the usual range, the 10th to 90th percentile for that calendar month."
-      onAsk={() => {
-        const maxRec = [...rows].sort((a,b) => b.value - a.value)[0];
-        askAi(`Explain the trend of fire activity in ${sc.label}.`, `The highest month was ${maxRec.month} with ${maxRec.value} cell-days. The long-term trend is ${signed(S.trend?.pctPerDecade)} per decade.`);
-      }}>
+    <Chart title={`Fire activity in ${sc.label}`} why="Tap any month to select it. The bold line is monthly activity on VIIRS's scale (before 2012 it is MODIS corrected place by place). The shaded band is the usual range, the 10th to 90th percentile for that calendar month.">
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} onClick={(e) => e?.activeLabel && setSel(e.activeLabel)} style={{ cursor: 'pointer' }}>
           <CartesianGrid stroke={C.grid} /><XAxis dataKey="month" tickFormatter={(x) => x.slice(0, 4)} minTickGap={40} {...axis} /><YAxis {...axis} />
@@ -367,11 +326,7 @@ export default function Insights() {
     {hotspots}
     <div className="grid gap-6 md:grid-cols-2">
       {barsChart}
-      <Chart title="Busiest years" why={`The five years with the most activity in ${sc.label}, ${S.years[0]} to ${S.years[1]}.`}
-        onAsk={() => askAi(
-          `Explain what made ${S.topYears[0].year} the busiest year for fires in ${sc.label}.`,
-          `The top years were ${S.topYears.map(t => t.year).join(', ')}. The busiest was ${S.topYears[0].year} with ${S.topYears[0].total.toLocaleString()} cell-days.`
-        )}>
+      <Chart title="Busiest years" why={`The five years with the most activity in ${sc.label}, ${S.years[0]} to ${S.years[1]}.`}>
         <ol className="space-y-2 text-sm">
           {S.topYears.map((t, i) => <li key={t.year} className="card2 flex items-center gap-3 rounded-2xl p-3"><span className="btn grid h-8 w-8 place-items-center rounded-xl text-xs">{i + 1}</span><span className="flex-1 font-semibold">{t.year}</span><span className="muted">{t.total.toLocaleString()} cell-days</span></li>)}
         </ol>
@@ -393,7 +348,6 @@ export default function Insights() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
               <div className="flex gap-2">
-                <button onClick={() => askAi('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="muted" />Ask AI</button>
                 <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
               </div>
             </div>
