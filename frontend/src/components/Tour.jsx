@@ -13,6 +13,7 @@ const STEPS = [
   { target: 'info', title: 'What the colours mean', body: 'Tap here for the legend: red is a live fire, amber is expected or unconfirmed, violet is a recent past fire. Tap any spot on the map for details and to write notes.' },
   { target: 'filters', title: 'Date, place and radius', body: 'Change the date, type coordinates, set how far around you counts as nearby, or draw your own area on the map.' },
   { target: 'view', title: 'Tilt and rotate', body: 'Switch between a top-down map and a 3D tilt, or turn the map to face another way.' },
+  { target: 'countries', title: 'Country Footprints', body: 'See the top fire-affected countries since 2001. Tap the globe to see the maps, or open the full gallery.' },
   { target: 'nav-calendar', title: 'Burning Calendar', body: 'See fires day by day, or switch to Years for a month-by-month heatmap of your area with downloads. Pick a day, then choose “See on the map”.' },
   { target: 'nav-insights', title: 'Insights', body: 'See how MODIS and VIIRS differ and how we merge them. Choose any period from 2000 to now.' },
   { target: 'nav-settings', title: 'Settings', body: 'Theme, units, time zone and your default map mode live here. You can replay this tour there too.' },
