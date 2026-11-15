@@ -4,25 +4,25 @@ import { useMap } from '../MapContext';
 import { useSettings } from '../SettingsContext';
 import { radiusChoices } from '../lib/format';
 
-// The scope switch, the search box and the "what exactly am I looking at" line, shared by Insights and the Calendar.
+// The two-way switch (your place or country / the whole world), the search box and the "what exactly am I looking at" line,
+// shared by Insights and the Calendar.
 export default function ScopeBar({ sc }) {
   const { radiusKm, setRadiusKm, polygon, draw } = useMap();
   const { s } = useSettings();
   const [q, setQ] = useState('');
   const submit = async (e) => { e.preventDefault(); if (await sc.search(q)) setQ(''); };
   const options = [
-    ['area', sc.areaName, !sc.hasArea],
-    ['country', sc.country?.name || (sc.countryStatus === 'loading' ? 'Country…' : 'Country'), !sc.place],
-    ['world', 'World', false],
+    ['local', sc.localLabel, sc.isLocal, !sc.hasArea && !sc.place],
+    ['world', 'World', !sc.isLocal, false],
   ];
 
   return (
     <div className="mt-5 space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         <div className="card2 flex gap-1 rounded-full p-1" role="tablist" aria-label="Scope">
-          {options.map(([k, text, disabled]) => (
-            <button key={k} role="tab" aria-selected={sc.scope === k} disabled={disabled} onClick={() => sc.setScope(k)}
-              className={`max-w-[12rem] truncate rounded-full px-4 py-1.5 text-sm disabled:opacity-40 ${sc.scope === k ? 'on font-semibold' : 'muted'}`}>{text}</button>
+          {options.map(([k, text, on, disabled]) => (
+            <button key={k} role="tab" aria-selected={on} disabled={disabled} onClick={() => sc.setScope(k)}
+              className={`max-w-[14rem] truncate rounded-full px-4 py-1.5 text-sm disabled:opacity-40 ${on ? 'on font-semibold' : 'muted'}`}>{text}</button>
           ))}
         </div>
         <form onSubmit={submit} className="flex min-w-[200px] flex-1 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--card)] px-3 py-1.5">
