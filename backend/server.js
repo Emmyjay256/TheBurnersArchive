@@ -9,6 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api', require('./routes/fireData'));
+app.use('/api', require('./routes/fireOutlook'));
 
 // A simple homepage so the root URL doesn't show an error
 app.get('/', (req, res) => {
