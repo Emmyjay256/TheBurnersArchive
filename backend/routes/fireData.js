@@ -542,7 +542,7 @@ router.get('/insights/:region/hotspots', async (req, res) => {
       const { i, ...c } = item;
       const name = await getPlaceName(c.lat, c.lon);
       withNames.push({ ...c, ...spread(i), name });
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 1100));
     }
 
     res.json({ region: req.params.region, month: m, years: st.years, hotspots: withNames });
