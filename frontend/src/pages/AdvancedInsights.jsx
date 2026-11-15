@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowLeft, Info, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Info, Map as MapIcon, BookOpen } from 'lucide-react';
 import { useMap } from '../MapContext';
 import { chartColors, useSettings } from '../SettingsContext';
 import { MONTHS } from '../lib/ui';
