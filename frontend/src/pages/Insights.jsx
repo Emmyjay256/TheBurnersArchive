@@ -11,8 +11,7 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
-import { CalendarDays, Map as MapIcon, BarChart3 } from 'lucide-react';
-
+import { CalendarDays, Map as MapIcon, BarChart3, Sparkles, Send, X } from 'lucide-react';
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
 const yearOf = (m) => +m.slice(0, 4);
@@ -24,8 +23,21 @@ const behind = (end) => (end ? (new Date().getFullYear() - +end.slice(0, 4)) * 1
 const Stat = ({ label: l, value, note }) => (
   <div className="card rounded-2xl p-4"><p className="muted text-xs">{l}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="muted mt-1 text-xs">{note}</p></div>
 );
-const Chart = ({ title, why, children }) => (
-  <section className="card rounded-3xl p-5"><h2 className="font-semibold">{title}</h2><p className="muted mb-4 mt-1 text-sm">{why}</p>{children}</section>
+const Chart = ({ title, why, children, onAsk }) => (
+  <section className="card rounded-3xl p-5 relative">
+    <div className="flex justify-between items-start gap-4">
+      <div>
+        <h2 className="font-semibold">{title}</h2>
+        <p className="muted mb-4 mt-1 text-sm">{why}</p>
+      </div>
+      {onAsk && (
+        <button onClick={onAsk} className="ghost shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-amber-500 hover:bg-[var(--card2)] transition-colors">
+          <Sparkles size={14} /> Explain
+        </button>
+      )}
+    </div>
+    {children}
+  </section>
 );
 const Key = ({ items }) => (
   <div className="muted mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs">
@@ -57,6 +69,95 @@ const CustomTooltip = ({ active, payload, label: l, tip }) => {
 };
 const areaTipValue = (val) => (Array.isArray(val) ? val.map((x) => Math.round(x)).join(' to ') : Math.round(val));
 
+// --- AI CHAT COMPONENT (Embedded for testing) ---
+function AiPanel({ onClose, initialPrompt, context }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Auto-send the prompt when opened via "Explain this"
+  useEffect(() => {
+    if (initialPrompt && messages.length === 0) {
+      sendMessage(initialPrompt, true);
+    }
+  }, [initialPrompt]); // eslint-disable-line
+
+  const sendMessage = async (text, isInitial = false) => {
+    if (!text.trim() || loading) return;
+    const userMsg = text.trim();
+    if (!isInitial) setInput('');
+    
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API}/api/ask-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: userMsg, context })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      
+      setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to my brain. Make sure the backend server has the Gemini key." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="glass pointer-events-auto absolute bottom-4 right-4 left-4 z-30 flex max-h-[80%] flex-col rounded-3xl p-4 md:left-auto md:w-96 shadow-2xl">
+      <div className="flex items-start justify-between gap-3 relative mb-4">
+        <div className="flex-1">
+          <p className="flex items-center gap-2 font-semibold text-lg"><Sparkles size={18} className="text-amber-500" /> Ask Spark</p>
+          <p className="muted text-xs">AI Data Assistant</p>
+        </div>
+        <div className="absolute -top-8 -right-2 pointer-events-none">
+          <Mascot size={64} mood={loading ? 'think' : 'wave'} />
+        </div>
+        <button onClick={onClose} aria-label="Close" className="muted z-20 mt-1"><X size={18} /></button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-[150px] max-h-[40vh] space-y-3 pr-1">
+        {messages.length === 0 && !initialPrompt && (
+          <p className="muted text-sm text-center py-4">Ask me to explain the data, the satellites, or the trends!</p>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-[var(--fg)] text-[var(--bg)]' : 'bg-[var(--card2)] text-[var(--fg)]'}`}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm bg-[var(--card2)] flex gap-1 items-center">
+              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce [animation-delay:0.2s]" />
+              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce [animation-delay:0.4s]" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="mt-3 flex items-center gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask a follow up..."
+          className="field flex-1 rounded-full px-4 py-2 text-sm"
+        />
+        <button type="submit" disabled={loading || !input.trim()} className="btn grid h-9 w-9 place-items-center rounded-full disabled:opacity-50">
+          <Send size={16} />
+        </button>
+      </form>
+    </div>
+  );
+}
+// -------------------------------------------------
+
 export default function Insights() {
   const { place, setCalMonth, showOnMap } = useMap();
   const { resolved } = useSettings();
@@ -75,6 +176,17 @@ export default function Insights() {
   const [sel, setSel] = useState(null);
   const [hot, setHot] = useState(null);
   const [panel, setPanel] = useState(null);
+
+  // --- AI STATE ---
+  const [showAi, setShowAi] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiContext, setAiContext] = useState('');
+
+  const openAiWithPrompt = (prompt, context) => {
+    setAiPrompt(prompt);
+    setAiContext(context);
+    setShowAi(true);
+  };
 
   // Worldwide record (60-second timeout). Needed for the World view and for the method figures in every view.
   useEffect(() => {
@@ -237,7 +349,11 @@ export default function Insights() {
   );
 
   const barsChart = (
-    <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}>
+    <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}
+      onAsk={() => openAiWithPrompt(
+        `Why is fire activity highest in certain months for ${isWorld ? 'the world' : sc.label}? What causes this seasonality?`, 
+        `Chart data: ${JSON.stringify(seasonal.map(s => ({ month: s.name, value: s.value })))}. This shows the average fire activity per month.`
+      )}>
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
         <BarChart data={seasonal}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} fontSize={11} /><YAxis {...axis} fontSize={11} /><Tooltip {...tip} cursor={{ fill: C.grid }} />
           <Bar dataKey="value" name={isWorld ? 'Avg cell-days' : 'Median cell-days'} shape={({ x, y, width, height, on }) => <rect x={x} y={y} width={width} height={height} rx={4} fill={on ? C.fg : C.muted} opacity={on ? 1 : 0.55} />} /></BarChart></ResponsiveContainer></div>
@@ -245,7 +361,11 @@ export default function Insights() {
   );
 
   const ratiosChart = (
-    <Chart title="The correction, month by month (worldwide)" why="VIIRS sees proportionally more fires in some seasons, so the correction is set per month. The band shows our uncertainty.">
+    <Chart title="The correction, month by month (worldwide)" why="VIIRS sees proportionally more fires in some seasons, so the correction is set per month. The band shows our uncertainty."
+      onAsk={() => openAiWithPrompt(
+        `Explain how the VIIRS to MODIS correction ratio works and why it changes by month.`, 
+        `Chart data: ${JSON.stringify(ratios)}. This shows the ratio of fires VIIRS sees compared to MODIS, per month.`
+      )}>
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={ratios}><CartesianGrid stroke={C.grid} /><XAxis dataKey="name" {...axis} fontSize={11} /><YAxis {...axis} fontSize={11} domain={[0, 'auto']} /><Tooltip {...tip} />
           <Area dataKey="band" stroke="none" fill={C.fg} fillOpacity={0.12} isAnimationActive={false} /><Line dataKey="ratio" stroke={C.fg} strokeWidth={2} dot={false} name="VIIRS ÷ MODIS" /></ComposedChart></ResponsiveContainer></div>
@@ -253,16 +373,26 @@ export default function Insights() {
   );
 
   const validationTiles = doc && (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 relative">
       <Stat label="VIIRS vs MODIS" value={`${m.pooled_ratio}×`} note="more fire cell-days seen by VIIRS" />
       <Stat label="Raw jump removed" value={v.raw_viirs_bias_pct != null ? `+${v.raw_viirs_bias_pct}%` : 'n/a'} note="false rise if sensors were just joined" />
       <Stat label="Backtest accuracy (R²)" value={v.r2 ?? 'n/a'} note="rebuilding hidden VIIRS years" />
       <Stat label="Backtest bias" value={v.bias_pct != null ? `${v.bias_pct}%` : 'n/a'} note="closer to 0 is better" />
+      <button onClick={() => openAiWithPrompt(
+        `Explain what these validation metrics mean. We have a pooled ratio of ${m.pooled_ratio}x, a raw jump removed of ${v.raw_viirs_bias_pct}%, an R2 of ${v.r2}, and a bias of ${v.bias_pct}%.`,
+        `Context: These metrics show how we merged MODIS and VIIRS satellite data to create one continuous record without fake jumps in 2012.`
+      )} className="absolute -top-3 -right-3 btn h-8 w-8 grid place-items-center rounded-full shadow-lg" title="Ask AI about this">
+        <Sparkles size={14} className="text-amber-500" />
+      </button>
     </div>
   );
 
   const backtest = m?.backtest?.length > 0 && (
-    <Chart title="How we chose the gap-filling rule" why={`Places VIIRS sees burning year after year while MODIS sees nothing are MODIS-blind. Chosen: ${m.rule_text?.[m.chosen_rule] || m.chosen_rule}.`}>
+    <Chart title="How we chose the gap-filling rule" why={`Places VIIRS sees burning year after year while MODIS sees nothing are MODIS-blind. Chosen: ${m.rule_text?.[m.chosen_rule] || m.chosen_rule}.`}
+      onAsk={() => openAiWithPrompt(
+        `Explain the gap-filling rule selection. Why was "${m.rule_text?.[m.chosen_rule] || m.chosen_rule}" chosen?`, 
+        `Data: ${JSON.stringify(m.backtest)}. This shows different methods tested to fill missing data, looking at bias, typical error, and R2 accuracy.`
+      )}>
       <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead><tr className="muted text-left text-xs"><th className="py-1.5">Method</th><th>Bias</th><th>Typical error</th><th>R²</th></tr></thead>
         <tbody>{m.backtest.map((b) => (
@@ -285,7 +415,11 @@ export default function Insights() {
 
   const worldMain = doc && (<>
     {validationTiles}
-    <Chart title="One record from two satellites (whole world)" why="Tap any month to select it. The bold line is the harmonized record on VIIRS's scale: before 2012 it is MODIS corrected place by place. The shaded band is our uncertainty.">
+    <Chart title="One record from two satellites (whole world)" why="Tap any month to select it. The bold line is the harmonized record on VIIRS's scale: before 2012 it is MODIS corrected place by place. The shaded band is our uncertainty."
+      onAsk={() => openAiWithPrompt(
+        `Explain the trend in this chart. Why does the data look different before 2012 compared to after?`, 
+        `This chart shows the harmonized fire record over time, merging MODIS (before 2012) and VIIRS (after 2012). The shaded band is the uncertainty range.`
+      )}>
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} onClick={(e) => e?.activeLabel && setSel(e.activeLabel)} style={{ cursor: 'pointer' }}>
           <CartesianGrid stroke={C.grid} /><XAxis dataKey="month" tickFormatter={(x) => x.slice(0, 4)} minTickGap={40} {...axis} /><YAxis {...axis} />
@@ -312,7 +446,11 @@ export default function Insights() {
       <Stat label="Long-term trend" value={S.trend?.pctPerDecade == null ? 'n/a' : signed(S.trend.pctPerDecade)} note={S.trend ? `per decade, ${S.trend.from} to ${S.trend.to}` : 'not enough full years'} />
       <Stat label="Busiest months" value={S.peakMonths.map((p) => MON[p.month - 1]).join(', ')} note="highest usual activity" />
     </div>
-    <Chart title={`Fire activity in ${sc.label}`} why="Tap any month to select it. The bold line is monthly activity on VIIRS's scale (before 2012 it is MODIS corrected place by place). The shaded band is the usual range, the 10th to 90th percentile for that calendar month.">
+    <Chart title={`Fire activity in ${sc.label}`} why="Tap any month to select it. The bold line is monthly activity on VIIRS's scale (before 2012 it is MODIS corrected place by place). The shaded band is the usual range, the 10th to 90th percentile for that calendar month."
+      onAsk={() => openAiWithPrompt(
+        `Explain the trend of fire activity in ${sc.label} and how the anomalies work.`, 
+        `Chart data: ${JSON.stringify(rows.map(r => ({ month: r.month, value: r.value, median: r.median })))}. This shows the monthly fire activity for ${sc.label} against its historical median.`
+      )}>
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} onClick={(e) => e?.activeLabel && setSel(e.activeLabel)} style={{ cursor: 'pointer' }}>
           <CartesianGrid stroke={C.grid} /><XAxis dataKey="month" tickFormatter={(x) => x.slice(0, 4)} minTickGap={40} {...axis} /><YAxis {...axis} />
@@ -328,7 +466,11 @@ export default function Insights() {
     {hotspots}
     <div className="grid gap-6 md:grid-cols-2">
       {barsChart}
-      <Chart title="Busiest years" why={`The five years with the most activity in ${sc.label}, ${S.years[0]} to ${S.years[1]}.`}>
+      <Chart title="Busiest years" why={`The five years with the most activity in ${sc.label}, ${S.years[0]} to ${S.years[1]}.`}
+        onAsk={() => openAiWithPrompt(
+          `Explain what happened in ${S.topYears[0].year} that made it the busiest year for fires in ${sc.label}.`, 
+          `Data: The top years with most fires were ${JSON.stringify(S.topYears)}.`
+        )}>
         <ol className="space-y-2 text-sm">
           {S.topYears.map((t, i) => <li key={t.year} className="card2 flex items-center gap-3 rounded-2xl p-3"><span className="btn grid h-8 w-8 place-items-center rounded-xl text-xs">{i + 1}</span><span className="flex-1 font-semibold">{t.year}</span><span className="muted">{t.total.toLocaleString()} cell-days</span></li>)}
         </ol>
@@ -348,9 +490,12 @@ export default function Insights() {
         <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
           <header className="card rounded-3xl p-5 md:p-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
-  <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
-  <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
-</div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
+              <div className="flex gap-2">
+                <button onClick={() => openAiWithPrompt('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="text-amber-500" />Ask AI</button>
+                <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
+              </div>
+            </div>
             <p className="muted mt-1 max-w-2xl text-sm">MODIS (2000 on) and VIIRS (2012 on) count fires differently. Here is how we merge them into one trustworthy record, and where that record says fires happen.</p>
             <ScopeBar sc={sc} />
             {rows.length > 0 && <p className="muted mt-2 text-sm">Record: {label(rows[0].month)} to {label(rows.at(-1).month)}</p>}
@@ -376,6 +521,8 @@ export default function Insights() {
           mascot={<Mascot size={60} mood="lounge" className="absolute top-[50px] right-[20px] z-10" />}
         />
       )}
+
+      {showAi && <AiPanel onClose={() => { setShowAi(false); setAiPrompt(''); }} initialPrompt={aiPrompt} context={aiContext} />}
     </div>
   );
 }
