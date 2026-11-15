@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CalendarDays, Map as MapIcon } from 'lucide-react';
+
 import { useMap } from '../MapContext';
 import { chartColors, useSettings } from '../SettingsContext';
 import { useScope } from '../hooks/useScope';
@@ -11,6 +11,7 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
+import { CalendarDays, Map as MapIcon, BarChart3 } from 'lucide-react';
 
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
