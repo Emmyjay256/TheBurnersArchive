@@ -177,9 +177,11 @@ export default function Settings() {
             <div className="mt-8 rounded-2xl border border-[var(--line)] bg-[var(--card)] p-5">
               <h3 className="mb-3 text-base font-semibold text-[var(--fg)]">Credits</h3>
               <ul className="space-y-1 text-sm text-[var(--muted)]">
-                <li>ALINDA RAHIM SHAKUR</li>
                 <li>ADONGU EMMANUEL ODAKA</li>
-                <li>ALLIMAM BABA</li>
+                <li>ALINDA RAHIM SHAKUR</li>
+                <li>OTIM MICHEAL</li>
+                <li>IMAMUT JULIANA</li>
+                <li>MIREMBE PEACE MERCY</li>
               </ul>
             </div>
           </div>
