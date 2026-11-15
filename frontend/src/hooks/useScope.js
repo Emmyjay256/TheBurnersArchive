@@ -20,14 +20,15 @@ async function lookupCountry(lat, lon, signal) {
   return out;
 }
 
-// One definition of "what area are we looking at" for both Insights and the Calendar.
-//   area    = the place + radius (or drawn polygon) the whole app shares
-//   country = the bounding box of the country that place is in
-//   world   = everything (only Insights has real data for this)
+// One definition of "what area are we looking at" for both Insights and the Calendar. Two choices for the user:
+//   local = your place + radius (or a drawn area), OR the whole country if a country was searched
+//   world = everything (only Insights has real data for this)
+// Internally `scope` is 'area' | 'country' | 'world' so the screens can tell a place from a country.
 export function useScope() {
   const { place, setPlace, setPendingFly, aoi, polygon, draw, radiusKm } = useMap();
   const fmt = useFormat();
-  const [picked, setPicked] = useState(null);
+  const [world, setWorld] = useState(false);     // true = the user chose World
+  const [kind, setKind] = useState('place');     // what "local" means: 'place' or 'country'
   const [country, setCountry] = useState(null);
   const [countryStatus, setCountryStatus] = useState('idle'); // idle | loading | ready | error
   const [searching, setSearching] = useState(false);
@@ -46,7 +47,7 @@ export function useScope() {
   }, [lat, lon]);
 
   const hasArea = !!aoi;
-  const scope = picked === 'world' ? 'world' : picked === 'country' && place ? 'country' : hasArea ? 'area' : 'world';
+  const scope = world ? 'world' : kind === 'country' && place ? 'country' : hasArea ? 'area' : 'world';
 
   // target = what to ask the server for. query is null for the world; key changes whenever the data should be reloaded.
   const target = useMemo(() => {
@@ -61,11 +62,21 @@ export function useScope() {
     return { ready: true, query, bbox: aoiBox(aoi), key: `area:${query}` };
   }, [scope, country, aoi]);
 
-  const areaName = polygon ? 'Drawn area' : place?.name || 'Your place';
+  // short on purpose: place names can be long ("Kindo Didaye, Wolayita, South Ethiopia Regional State")
+  const areaName = polygon ? 'Drawn area' : String(place?.name || 'Your place').split(',')[0];
+  const localLabel = !place && !hasArea ? 'My place' : kind === 'country' && place ? country?.name || 'Country…' : areaName;
   const label = scope === 'world' ? 'The whole world' : scope === 'country' ? country?.name || 'This country' : areaName;
   const detail = scope === 'world' ? 'every place on Earth'
     : scope === 'country' ? 'everything inside its bounding box, which can include slivers of neighbouring countries'
     : polygon ? `about ${Math.round(polygonAreaKm2(polygon)).toLocaleString()} km²` : `within ${fmt.dist(radiusKm)} of the place`;
+
+  // 'world' | 'local' (whatever local currently means) | 'area' (your place) | 'country'
+  const setScope = useCallback((s) => {
+    if (s === 'world') { setWorld(true); return; }
+    setWorld(false);
+    if (s === 'area') setKind('place');
+    if (s === 'country') setKind('country');
+  }, []);
 
   const search = useCallback(async (text) => {
     const t = String(text || '').trim();
@@ -79,7 +90,8 @@ export function useScope() {
       if (polygon) draw.clear();      // a drawn area would otherwise keep winning over the place you just searched
       setPlace({ lat: +hit.lat, lon: +hit.lon, name: String(hit.display_name).split(',')[0] });
       setPendingFly(true);            // so the map flies there next time it opens
-      setPicked(hit.addresstype === 'country' ? 'country' : 'area');
+      setWorld(false);
+      setKind(hit.addresstype === 'country' ? 'country' : 'place');
       return true;
     } catch {
       setSearchMsg('Search failed. Check your connection and try again.');
@@ -87,5 +99,5 @@ export function useScope() {
     } finally { setSearching(false); }
   }, [polygon, draw, setPlace, setPendingFly]);
 
-  return { scope, setScope: setPicked, place, country, countryStatus, target, label, detail, areaName, hasArea, search, searching, searchMsg };
+  return { scope, isLocal: scope !== 'world', setScope, place, country, countryStatus, target, label, localLabel, detail, areaName, hasArea, search, searching, searchMsg };
 }
