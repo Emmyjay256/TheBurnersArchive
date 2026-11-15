@@ -21,7 +21,7 @@ export default function CountryFootprints() {
           return { 
             rank: +rank, 
             country: country.trim(), 
-            gid, 
+            gid: gid.trim(), 
             detections: +detections, 
             places: +places, 
             first, 
@@ -96,7 +96,7 @@ export default function CountryFootprints() {
               className="card p-2 rounded-2xl flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
             >
               <img
-                src={`/country_maps/${r.country.replace(/ /g, '_')}.webp`}
+                src={`/country_maps/maps/${r.gid}.webp`}
                 alt={`Fire map of ${r.country}`}
                 className="rounded-xl w-full bg-[var(--card2)] aspect-square object-cover"
                 loading="lazy"
@@ -135,7 +135,7 @@ export default function CountryFootprints() {
             {/* The Image Container */}
             <div className={`flex justify-center w-full overflow-auto rounded-2xl shadow-2xl bg-white ${isZoomed ? 'max-h-[70vh]' : 'max-h-[60vh]'}`}>
               <img
-                src={`/country_maps/${selected.country.replace(/ /g, '_')}.webp`}
+                src={`/country_maps/maps/${selected.gid}.webp`}
                 alt={`Fire map of ${selected.country}`}
                 onClick={() => setIsZoomed(!isZoomed)}
                 className={`transition-all duration-200 ${isZoomed ? 'max-w-none w-auto h-auto cursor-zoom-out scale-150 origin-center' : 'max-w-full max-h-[60vh] object-contain cursor-zoom-in'}`}
@@ -156,7 +156,7 @@ export default function CountryFootprints() {
                   onClick={() => setIsZoomed(!isZoomed)}
                   className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2 text-sm text-white transition-colors"
                 >
-                  {isZoomed ? <Minimize size={16} /> : <Maximize size={16} />}
+                  {isZoomed ? <Minimize size5={16} /> : <Maximize size={16} />}
                   {isZoomed ? 'Fit to screen' : 'Zoom in'}
                 </button>
                 <button
