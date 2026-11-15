@@ -11,6 +11,9 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
+import { CalendarDays, Map as MapIcon, BarChart3 } from 'lucide-react';
+import AdvancedInsights from './pages/AdvancedInsights';
+<Route path="/insights/advanced" element={<AdvancedInsights />} />
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
 const yearOf = (m) => +m.slice(0, 4);
@@ -345,7 +348,10 @@ export default function Insights() {
       <div className="page absolute inset-0 overflow-y-auto">
         <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
           <header className="card rounded-3xl p-5 md:p-7">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+  <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
+  <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
+</div>
             <p className="muted mt-1 max-w-2xl text-sm">MODIS (2000 on) and VIIRS (2012 on) count fires differently. Here is how we merge them into one trustworthy record, and where that record says fires happen.</p>
             <ScopeBar sc={sc} />
             {rows.length > 0 && <p className="muted mt-2 text-sm">Record: {label(rows[0].month)} to {label(rows.at(-1).month)}</p>}
