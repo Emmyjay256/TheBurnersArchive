@@ -22,7 +22,7 @@ const side = 'glass grid h-11 w-11 place-items-center rounded-full';
 export default function Explore() {
   const { place, goTo, reorient, selected, setSelected, layers, setLayers, stats, mode, setMode, date, setDate, radiusKm, setRadiusKm,
     pendingFly, setPendingFly, polygon, drawing, draw } = useMap();
-  const { s } = useSettings();
+  const { s, tour } = useSettings(); // Added tour state here
   const fmt = useFormat();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -30,6 +30,44 @@ export default function Explore() {
   const [toast, setToast] = useState(null);     // { text, sticky, from }
   const [coords, setCoords] = useState({ lat: '', lon: '' });
   const panelRef = useRef(null);
+
+  // --- MASCOT LOGIC ---
+  const [mood, setMood] = useState('sit');
+  const [mascotVisible, setMascotVisible] = useState(!tour);
+  const mascotTimerRef = useRef(null);
+
+  // Hide the mascot when the tour is active, show her and wave when it ends.
+  useEffect(() => {
+    if (!tour) {
+      setMascotVisible(true);
+      setMood('wave');
+      const t = setTimeout(() => setMood('sit'), 3000);
+      return () => clearTimeout(t);
+    } else {
+      setMascotVisible(false);
+    }
+  }, [tour]);
+
+  const handleMascotClick = () => {
+    clearTimeout(mascotTimerRef.current);
+
+    if (mood === 'sit' || mood === 'wave') {
+      setMood('worried');
+      mascotTimerRef.current = setTimeout(() => setMood('sit'), 5000);
+    } else if (mood === 'worried') {
+      setMood('run');
+      mascotTimerRef.current = setTimeout(() => setMood('cheer'), 5000);
+    } else if (mood === 'run') {
+      mascotTimerRef.current = setTimeout(() => setMood('cheer'), 5000);
+    } else if (mood === 'cheer') {
+      setMood('run');
+      mascotTimerRef.current = setTimeout(() => setMood('cheer'), 5000);
+    }
+  };
+
+  useEffect(() => () => clearTimeout(mascotTimerRef.current), []);
+  // --------------------
+
   const closePanel = useCallback(() => setPanel(null), []);
   useOutsideClose(panelRef, closePanel, !!panel);
   const toggle = (id) => { setSelected(null); setPanel((p) => (p === id ? null : id)); };
@@ -165,6 +203,17 @@ export default function Explore() {
           <Snackbar message={drawing ? null : toast?.text} sticky={toast?.sticky} onClose={() => setToast(null)} />
         </div>
       </div>
+
+      {/* --- SPARK MASCOT BOTTOM LEFT --- */}
+      {mascotVisible && (
+        <div 
+          className="pointer-events-auto absolute bottom-4 left-4 z-20 cursor-pointer select-none animate-jump-in" 
+          onClick={handleMascotClick}
+        >
+          <Mascot size={84} mood={mood} />
+        </div>
+      )}
+      {/* -------------------------------------- */}
 
       {panel && (
         <div ref={panelRef} className="glass pointer-events-auto absolute inset-x-3 bottom-3 z-20 max-h-[60%] overflow-y-auto rounded-2xl p-4 md:inset-x-auto md:bottom-auto md:right-4 md:top-[4.75rem] md:w-80">

@@ -64,3 +64,14 @@ body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-s
 .spark-leg.l { transform-origin: 50px 118px; }
 .spark-leg.r { transform-origin: 70px 118px; animation-direction: alternate-reverse; }
 @keyframes spark-step { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+
+@keyframes jumpIn {
+  0% { transform: translateY(100px); opacity: 0; }
+  50% { transform: translateY(-20px); opacity: 1; }
+  70% { transform: translateY(10px); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-jump-in {
+  animation: jumpIn 0.8s ease-out;
+}
