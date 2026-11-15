@@ -16,6 +16,8 @@ import Insights from './pages/Insights';
 import { useServerWake } from './hooks/useServerWake';
 import { log } from './debug';
 import Mascot from './components/Mascot';
+import Insights from './pages/Insights';
+import AdvancedInsights from './pages/AdvancedInsights';
 
 const TABS = [
   { to: '/', label: 'Explore', Icon: IconExplore, tour: 'nav-explore' },
@@ -90,7 +92,7 @@ function Shell() {
     <div className="page fixed inset-0 flex flex-col-reverse md:flex-row">
       <nav className="card flex shrink-0 justify-around border-x-0 border-b-0 py-2 md:w-16 md:flex-col md:items-center md:justify-center md:gap-4 md:border-y-0 md:border-l-0">
         {TABS.map(({ to, label, Icon, tour: t }) => (
-          <NavLink key={to} to={to} end aria-label={label} title={label} data-tour={t}
+          <NavLink key={to} to={to} end={to === '/'} aria-label={label} title={label} data-tour={t}
             className={({ isActive }) => `grid h-11 w-11 place-items-center rounded-xl ${isActive ? '' : 'muted'}`}>
             {({ isActive }) => <Icon active={isActive} />}
           </NavLink>
@@ -119,6 +121,7 @@ function Shell() {
             <Route path="/" element={<Explore />} />
             <Route path="/calendar" element={<BurningCalendar />} />
             <Route path="/insights" element={<Insights />} />
+            <Route path="/insights/advanced" element={<AdvancedInsights />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </div>
