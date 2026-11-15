@@ -12,7 +12,7 @@ import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
 import { CalendarDays, Map as MapIcon, BarChart3, Sparkles } from 'lucide-react';
-import AiPanel from './AiPanel';
+import { askAi } from '../lib/aiStore';
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
 const yearOf = (m) => +m.slice(0, 4);
@@ -89,16 +89,8 @@ export default function Insights() {
   const [hot, setHot] = useState(null);
   const [panel, setPanel] = useState(null);
 
-  // --- AI STATE ---
-  const [showAi, setShowAi] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiContext, setAiContext] = useState('');
-
-  const openAiWithPrompt = (prompt, context) => {
-    setAiPrompt(prompt);
-    setAiContext(context);
-    setShowAi(true);
-  };
+  // --- AI ---
+  const openAiWithPrompt = (prompt, context) => askAi(prompt, context);
 
   useEffect(() => {
     let cancelled = false;
@@ -447,8 +439,6 @@ export default function Insights() {
           mascot={<Mascot size={60} mood="lounge" className="absolute top-[50px] right-[20px] z-10" />}
         />
       )}
-
-      {showAi && <AiPanel onClose={() => { setShowAi(false); setAiPrompt(''); }} initialPrompt={aiPrompt} context={aiContext} />}
-    </div>
+      </div>
   );
 }

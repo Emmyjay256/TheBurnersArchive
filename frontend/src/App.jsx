@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import AiHost from './components/AiHost';
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IconExplore, IconCalendar, IconInsights, IconSettings } from './components/NavIcons';
 import Tour from './components/Tour';
@@ -142,6 +143,7 @@ function Shell() {
           )}
 
           <Routes>
+            <AiHost />
             <Route path="/" element={<Explore />} />
             <Route path="/calendar" element={<BurningCalendar />} />
             <Route path="/insights" element={<Insights />} />

@@ -10,6 +10,7 @@ app.use(express.json());
 
 app.use('/api', require('./routes/fireData'));
 app.use('/api', require('./routes/fireOutlook'));
+app.use('/api', require('./routes/askAi'));
 
 // A simple homepage so the root URL doesn't show an error
 app.get('/', (req, res) => {
