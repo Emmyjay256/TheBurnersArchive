@@ -110,7 +110,7 @@ function Trend({ title, why, metrics, C, tip }) {
   const [view, setView] = useState('monthly');
   const [mid, setMid] = useState(metrics[0].id);
   const [marks, setMarks] = useState('on');
-  const met = metrics.find((m) => m.id === mid);
+  const met = metrics.find((m) => m.id === mid) || metrics[0];
   const yearly = view === 'yearly';
   const rows = yearly ? YEARLY : MONTHLY;
   const y = yearly ? met.yKey : met.mKey;
@@ -254,7 +254,7 @@ export default function AdvancedInsights() {
     </>),
 
     detections: (<>
-      <Trend C={C} tip={tip} title="Fire detections over time"
+      <Trend key="detections" C={C} tip={tip} title="Fire detections over time"
         why="Each point is the number of detections in that month or year. The steps up line up with new satellites joining."
         metrics={[{ id: 'count', label: 'Detections', mKey: 'hotspot_count', yKey: 'hotspot_count', unit: 'detections', bars: true, note: `The last month (${monthLabel(LAST.key)}) and the first year (2000) are partial.` }]} />
       <div className="grid gap-6 md:grid-cols-2">
@@ -290,7 +290,7 @@ export default function AdvancedInsights() {
         <Stat label="Strongest detection" value={`${n(M.frp.max)} MW`} note="see Extreme fires" />
         <Stat label="Average, early vs recent" value={`${n(EARLY.frp, 0)} → ${n(LATE.frp, 0)} MW`} note="before 2012 vs 2012 on" />
       </div>
-      <Trend C={C} tip={tip} title="Fire power over time"
+      <Trend key="intensity" C={C} tip={tip} title="Fire power over time"
         why="Total FRP adds up the power of every detection. The average divides that by the number of detections."
         metrics={[
           { id: 'total', label: 'Total FRP', mKey: 'frp_total', yKey: 'frp_total', unit: 'MW, summed over detections (not an energy total)', bars: true, note: 'Sums of detection values, not energy over time.' },
@@ -305,7 +305,7 @@ export default function AdvancedInsights() {
         <Stat label="How closely they move" value={SUMMARY.brightness_t31_pearson_correlation.toFixed(2)} note="correlation, 1 means identical" />
         <Stat label="Brightness, early vs recent" value={`${n(EARLY.bri, 0)} → ${n(LATE.bri, 0)} K`} note="before 2012 vs 2012 on" />
       </div>
-      <Trend C={C} tip={tip} title="Brightness and temperature over time"
+      <Trend key="heat" C={C} tip={tip} title="Brightness and temperature over time"
         why="Average value across all detections in each month or year. The step in brightness at 2012 comes from the instrument change."
         metrics={[
           { id: 'b', label: 'Brightness', mKey: 'brightness_mean', yKey: 'brightness_mean', unit: 'kelvin (K)', dec: 1, domain: ['auto', 'auto'], note: 'The axis does not start at zero, so small changes look bigger.' },

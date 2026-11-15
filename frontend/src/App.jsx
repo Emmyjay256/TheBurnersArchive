@@ -17,6 +17,7 @@ import { useServerWake } from './hooks/useServerWake';
 import { log } from './debug';
 import Mascot from './components/Mascot';
 import AdvancedInsights from './pages/AdvancedInsights';
+import CountryFootprints from './pages/CountryFootprints';
 
 const TABS = [
   { to: '/', label: 'Explore', Icon: IconExplore, tour: 'nav-explore' },
@@ -122,6 +123,7 @@ function Shell() {
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/advanced" element={<AdvancedInsights />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/country-footprints" element={<CountryFootprints />} />
           </Routes>
         </div>
       </main>

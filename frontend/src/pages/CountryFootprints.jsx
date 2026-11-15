@@ -156,7 +156,7 @@ export default function CountryFootprints() {
                   onClick={() => setIsZoomed(!isZoomed)}
                   className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2 text-sm text-white transition-colors"
                 >
-                  {isZoomed ? <Minimize size5={16} /> : <Maximize size={16} />}
+                  {isZoomed ? <Minimize size={16} /> : <Maximize size={16} />}
                   {isZoomed ? 'Fit to screen' : 'Zoom in'}
                 </button>
                 <button

@@ -10,5 +10,5 @@ if (token) {
 }
 export const HAS_TOKEN = Boolean(token);
 
-export const API = import.meta.env.VITE_API_URL ?? 'https://theburnersarchive.onrender.com';
+export const API = import.meta.env.VITE_API_URL ?? 'https://theburnersarchive-api-fzfwgzbpg6b9guc8.southafricanorth-01.azurewebsites.net';
 // TODO: ask backend for a real "last 7 days" endpoint. Until then Live shows the current-year file.
