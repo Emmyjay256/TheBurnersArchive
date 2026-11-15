@@ -8,9 +8,9 @@ import scriptB from './data/code/fast_modis_viirs_harmonization.py?raw';
 
 
 const DATA_LINKS = [
-  { group: 'raw', title: 'Uganda raw detections: MODIS', format: 'CSV, 15 columns', url: https://drive.google.com/drive/folders/1f951lFK2EYqJnVjtFUpKzsl5X88S7mny?usp=sharing'',
+  { group: 'raw', title: 'Uganda raw detections: MODIS', format: 'CSV, 15 columns', url: 'https://drive.google.com/drive/folders/1f951lFK2EYqJnVjtFUpKzsl5X88S7mny?usp=sharing',
     what: 'Terra and Aqua active-fire records for Uganda, exactly as downloaded from NASA FIRMS. Start here if you want to clean and grid the data yourself.' },
-  { group: 'raw', title: 'Uganda raw detections: VIIRS', format: 'CSV, 15 columns', url: https://drive.google.com/drive/folders/1Hv3GMRgiE96oonZp5zNmHGty61k_-IQk?usp=sharing'',
+  { group: 'raw', title: 'Uganda raw detections: VIIRS', format: 'CSV, 15 columns', url: 'https://drive.google.com/drive/folders/1Hv3GMRgiE96oonZp5zNmHGty61k_-IQk?usp=sharing',
     what: 'S-NPP, NOAA-20 and NOAA-21 active-fire records for Uganda, exactly as downloaded from NASA FIRMS.' },
   { group: 'processed', title: 'Uganda cleaned and gridded data', format: 'Parquet', url: '',
     what: 'After our cleaning rules: one row per 0.1 degree cell, month and satellite, with fire count, fire days, summed and maximum FRP, and daytime count.' },
@@ -120,7 +120,7 @@ const PIPELINE = [
 
 const COMPARE = [
   ['Question it answers', 'What would a single, consistent monthly line look like from 2000 to today?', 'Which detections from different satellites are probably the same fire event?'],
-  ['Core idea', 'Treat VIIRS as the truth and rebuild the MODIS-only years on VIIRS scale.', 'Draw a box for every detection and link boxes from different satellites that overlap within 12 hours.'],
+  ['Core idea', 'Treat VIIRS as the truth. Earlier years are rebuilt from MODIS and put on VIIRS scale.', 'Draw a box for every detection and link boxes from different satellites that overlap within 12 hours.'],
   ['Input', 'Pre-streamed binary files, 13 bytes per detection (cell, day, satellite).', 'Yearly binary files per satellite, 37 bytes per detection, including scan and track size.'],
   ['Output', 'Monthly series with an uncertainty band, map cells, fire-prone places.', 'Edges, group members and group summaries, per year.'],
   ['Strength', 'One continuous line, validated by hiding years and rebuilding them.', 'Keeps every observation and measures real overlap exactly.'],
@@ -146,14 +146,6 @@ const STEPS_B = [
   ['Test exactly', 'Compute the overlap area on a sphere. Boxes that only touch still count. Store intersection, union, IoU and overlap of the smaller box.'],
   ['Group', 'Union-find joins connected detections into groups. The group id is the lowest observation id inside it. Every observation is kept.'],
   ['Write and verify', 'Edges, members, groups and a summary file are checked for size, copied to Drive, and only then marked COMPLETE. An existing year is never overwritten.'],
-];
-
-const CHECKPOINTS = [
-  ['Cleaning rules', 'Type 0 only. MODIS confidence 30 or more. VIIRS confidence n or h.'],
-  ['Grid', 'Cell = 0.1 degrees. lat_i = floor(latitude x 10) and lon_i = floor(longitude x 10).'],
-  ['Uganda total', '2,320,818 kept detections, summed over all five satellites and all 58 districts, November 2000 to November 2025. The country-level total can be slightly higher because a few detections fall in cells with no district.'],
-  ['Uganda season', 'About 80% of detections fall from December to February, peaking in January (Aqua, 2003 to 2024, using a rough box and not the country border).'],
-  ['Northern Uganda test circle', 'A 100 km circle centred at 2.0 N, 32.0 E shows a decline of about two thirds from 2016 to 2024 in both MODIS and VIIRS, and 2025 is higher than 2024.'],
 ];
 
 const COMPARE_STEPS = [
@@ -201,14 +193,14 @@ export default function Methodology() {
       <Card title="The problem" why="The satellite archive is about 45 GB, far too big to search every time someone opens the app. We did not have powerful machines, so we summarised it once, online, into a compact grid that answers a question in a fraction of a second.">
         <Caution>Every number in the app is a count of satellite detections, not a measure of burned area. Detections depend on each sensor&apos;s sensitivity and overpass time.</Caution>
       </Card>
-      <Card title="From raw files to this app" why="Six stages, in the order we did them.">
+      <Card title="From raw files to this app" why="Three stages, in the order we did them.">
         <Steps items={PIPELINE} />
       </Card>
       <div className="grid gap-3 md:grid-cols-2">
         <button onClick={() => go('tools')} className="card2 rounded-2xl p-4 text-left"><p className="font-semibold">Tools</p><p className="muted mt-1 text-sm">The online platforms we used, and why.</p></button>
         <button onClick={() => go('harmonization')} className="card2 rounded-2xl p-4 text-left"><p className="font-semibold">Harmonization</p><p className="muted mt-1 text-sm">Two ways of putting MODIS and VIIRS on one scale.</p></button>
         <button onClick={() => go('code')} className="card2 rounded-2xl p-4 text-left"><p className="font-semibold">Code</p><p className="muted mt-1 text-sm">Read, copy or download both scripts.</p></button>
-        <button onClick={() => go('data')} className="card2 rounded-2xl p-4 text-left"><p className="font-semibold">Data and reproduce</p><p className="muted mt-1 text-sm">Uganda files to download, and checkpoints to compare against.</p></button>
+        <button onClick={() => go('data')} className="card2 rounded-2xl p-4 text-left"><p className="font-semibold">Data and reproduce</p><p className="muted mt-1 text-sm">Uganda files to download, and steps to compare against.</p></button>
       </div>
     </>),
 
@@ -290,13 +282,6 @@ export default function Methodology() {
       {group('raw', '1. Raw files for Uganda', 'The starting point, as NASA FIRMS delivers it.')}
       {group('processed', '2. Processed files', 'After cleaning, gridding and tagging with districts.')}
       {group('harmonised', '3. Harmonized files', 'The outputs of our two pipelines.')}
-      <Card title="Reference checkpoints for Uganda" why="Numbers from our own run, so you can tell early whether your cleaning and gridding agree with ours.">
-        <dl className="space-y-2 text-sm">
-          {CHECKPOINTS.map(([k, v]) => (
-            <div key={k} className="card2 rounded-2xl p-3"><dt className="muted text-xs">{k}</dt><dd className="mt-0.5">{v}</dd></div>
-          ))}
-        </dl>
-      </Card>
       <Card title="How to compare your result with ours"><Steps items={COMPARE_STEPS} /></Card>
       <Caution>Border cells count wholly toward the region containing their centre, so district and county totals are approximate near borders. Small regions with only a few cells give rough numbers. Please keep this in mind when comparing.</Caution>
     </>),
