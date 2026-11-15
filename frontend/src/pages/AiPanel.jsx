@@ -4,6 +4,7 @@ import { X, Send, Sparkles } from 'lucide-react';
 import Mascot from '../components/Mascot';
 import { useOutsideClose } from '../hooks/useOutsideClose';
 import { API } from '../config';
+import ReactMarkdown from 'react-markdown';
 
 const MASCOT_MOODS = ['think', 'wave', 'cheer', 'sit', 'think', 'worried', 'run', 'dance'];
 
@@ -79,7 +80,22 @@ export default function AiPanel({ onClose, initialPrompt, context }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-[var(--fg)] text-[var(--bg)]' : 'bg-[var(--card2)] text-[var(--fg)]'}`}>
-              {m.text}
+              {m.role === 'ai' ? (
+                <ReactMarkdown
+                  components={{
+                    h3: ({node, ...props}) => <h3 className="font-bold text-base mt-3 mb-1" {...props} />,
+                    h4: ({node, ...props}) => <h4 className="font-semibold mt-2 mb-1" {...props} />,
+                    p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                    li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-bold text-[var(--fg)]" {...props} />,
+                  }}
+                >
+                  {m.text}
+                </ReactMarkdown>
+              ) : (
+                m.text
+              )}
             </div>
           </div>
         ))}
