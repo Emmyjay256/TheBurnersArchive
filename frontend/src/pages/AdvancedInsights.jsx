@@ -353,7 +353,10 @@ export default function AdvancedInsights() {
         <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
           <header className="card rounded-3xl p-5 md:p-7">
             <button onClick={() => navigate('/insights')} className="ghost mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"><ArrowLeft size={14} />Insights</button>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Advanced insights</h1>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+  <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Advanced insights</h1>
+  <button onClick={() => navigate('/insights/methodology')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BookOpen size={16} />How we did it</button>
+</div>
             <p className="muted mt-1 max-w-2xl text-sm">A closer look at the full worldwide record of {compact(SUMMARY.total_detections)} fire detections from MODIS and VIIRS, from November 2000 to November 2025: how many, when, how intense, and the most extreme.</p>
           </header>
 
