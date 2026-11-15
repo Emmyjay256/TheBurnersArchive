@@ -1,75 +1,80 @@
+// src/pages/AiPanel.jsx
 import { useEffect, useRef, useState } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
-import { useMap } from '../MapContext';
-import { useSettings } from '../SettingsContext';
-import Mascot from './Mascot';
-import { log } from '../debug';
+import Mascot from '../components/Mascot';
+import { useOutsideClose } from '../hooks/useOutsideClose';
+import { API } from '../config';
 
-export default function AiPanel({ onClose }) {
-  const { place, date, mode } = useMap();
-  const { s } = useSettings();
-  
-  const [messages, setMessages] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('spark_chat')) || []; } catch { return []; }
-  });
+const MASCOT_MOODS = ['think', 'wave', 'cheer', 'sit', 'think', 'worried', 'run', 'dance'];
+
+export default function AiPanel({ onClose, initialPrompt, context }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const scrollRef = useRef(null);
+  const [moodIndex, setMoodIndex] = useState(0);
+  const panelRef = useRef(null);
+  const hasSentRef = useRef(false);
 
-  // Scroll to bottom when new messages arrive
-  useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
-  
-  // Save chat to local storage
-  useEffect(() => { localStorage.setItem('spark_chat', JSON.stringify(messages)); }, [messages]);
+  useOutsideClose(panelRef, onClose);
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
+  useEffect(() => {
+    if (loading) return;
+    const id = setInterval(() => setMoodIndex((prev) => (prev + 1) % MASCOT_MOODS.length), 2000);
+    return () => clearInterval(id);
+  }, [loading]);
 
-    const userMsg = input.trim();
-    setInput('');
+  useEffect(() => {
+    if (initialPrompt && !hasSentRef.current) {
+      hasSentRef.current = true;
+      sendMessage(initialPrompt, true);
+    }
+  }, [initialPrompt]); // eslint-disable-line
+
+  const sendMessage = async (text, isInitial = false) => {
+    if (!text.trim() || loading) return;
+    const userMsg = text.trim();
+    if (!isInitial) setInput('');
+    
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setLoading(true);
 
-    // Build the context so Gemini knows where the user is looking
-    const context = `User is looking at: ${place?.name || 'the whole world'}. Current mode: ${mode}. Current date: ${date || 'Live'}. They are on the Explore screen.`;
-
     try {
-      const res = await fetch('/api/ask-ai', {
+      const res = await fetch(`${API}/api/ask-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: userMsg, context })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Failed');
       
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
     } catch (err) {
-      log('ai', 'error', err);
-      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to my brain right now. Try again in a moment." }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to my brain. Make sure the backend server has the Gemini key." }]);
     } finally {
       setLoading(false);
     }
   };
 
+  const currentMood = loading ? 'think' : MASCOT_MOODS[moodIndex];
+
   return (
-    <div className="glass pointer-events-auto absolute bottom-4 right-4 left-4 z-30 flex max-h-[80%] flex-col rounded-3xl p-4 md:left-auto md:w-96">
-      {/* Header */}
+    <div ref={panelRef} className="glass pointer-events-auto absolute bottom-4 right-4 left-4 z-30 flex max-h-[80%] flex-col rounded-3xl p-4 md:left-auto md:w-96 shadow-2xl">
       <div className="flex items-start justify-between gap-3 relative mb-4">
         <div className="flex-1">
-          <p className="flex items-center gap-2 font-semibold text-lg"><Sparkles size={18} className="text-amber-500" /> Ask Spark</p>
-          <p className="muted text-xs">Your AI fire data assistant</p>
+          <p className="flex items-center gap-2 font-semibold text-lg"><Sparkles size={18} className="muted" /> Ask Spark</p>
+          <p className="muted text-xs">AI Data Assistant</p>
         </div>
-        <div className="absolute -top-8 -right-2 pointer-events-none">
-          <Mascot size={64} mood={loading ? 'think' : 'wave'} />
+        
+        <div className="absolute -top-8 right-[60px] pointer-events-none">
+          <Mascot size={48} mood={currentMood} />
         </div>
+        
         <button onClick={onClose} aria-label="Close" className="muted z-20 mt-1"><X size={18} /></button>
       </div>
 
-      {/* Chat History */}
       <div className="flex-1 overflow-y-auto min-h-[150px] max-h-[40vh] space-y-3 pr-1">
-        {messages.length === 0 && (
-          <p className="muted text-sm text-center py-4">Ask me anything about the fires in this area, how MODIS and VIIRS differ, or how to use this app!</p>
+        {messages.length === 0 && !initialPrompt && (
+          <p className="muted text-sm text-center py-4">Ask me to explain the data, the satellites, or the trends!</p>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -87,15 +92,13 @@ export default function AiPanel({ onClose }) {
             </div>
           </div>
         )}
-        <div ref={scrollRef} />
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={sendMessage} className="mt-3 flex items-center gap-2">
+      <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="mt-3 flex items-center gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about the data..."
+          placeholder="Ask a follow up..."
           className="field flex-1 rounded-full px-4 py-2 text-sm"
         />
         <button type="submit" disabled={loading || !input.trim()} className="btn grid h-9 w-9 place-items-center rounded-full disabled:opacity-50">

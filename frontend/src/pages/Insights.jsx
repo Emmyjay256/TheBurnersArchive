@@ -11,7 +11,8 @@ import { API } from '../config';
 import { MONTHS } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
-import { CalendarDays, Map as MapIcon, BarChart3, Sparkles, Send, X } from 'lucide-react';
+import { CalendarDays, Map as MapIcon, BarChart3, Sparkles } from 'lucide-react';
+import AiPanel from './AiPanel';
 
 const MON = MONTHS.map((m) => m.slice(0, 3));
 const yearOf = (m) => +m.slice(0, 4);
@@ -31,8 +32,8 @@ const Chart = ({ title, why, children, onAsk }) => (
         <p className="muted mb-4 mt-1 text-sm">{why}</p>
       </div>
       {onAsk && (
-        <button onClick={onAsk} className="ghost shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-amber-500 hover:bg-[var(--card2)] transition-colors">
-          <Sparkles size={14} /> Explain
+        <button onClick={onAsk} className="ghost shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs hover:bg-[var(--card2)] transition-colors">
+          <Sparkles size={14} className="muted" /> Explain
         </button>
       )}
     </div>
@@ -69,95 +70,6 @@ const CustomTooltip = ({ active, payload, label: l, tip }) => {
 };
 const areaTipValue = (val) => (Array.isArray(val) ? val.map((x) => Math.round(x)).join(' to ') : Math.round(val));
 
-// --- AI CHAT COMPONENT (Embedded for testing) ---
-function AiPanel({ onClose, initialPrompt, context }) {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Auto-send the prompt when opened via "Explain this"
-  useEffect(() => {
-    if (initialPrompt && messages.length === 0) {
-      sendMessage(initialPrompt, true);
-    }
-  }, [initialPrompt]); // eslint-disable-line
-
-  const sendMessage = async (text, isInitial = false) => {
-    if (!text.trim() || loading) return;
-    const userMsg = text.trim();
-    if (!isInitial) setInput('');
-    
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API}/api/ask-ai`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMsg, context })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
-      
-      setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to my brain. Make sure the backend server has the Gemini key." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="glass pointer-events-auto absolute bottom-4 right-4 left-4 z-30 flex max-h-[80%] flex-col rounded-3xl p-4 md:left-auto md:w-96 shadow-2xl">
-      <div className="flex items-start justify-between gap-3 relative mb-4">
-        <div className="flex-1">
-          <p className="flex items-center gap-2 font-semibold text-lg"><Sparkles size={18} className="text-amber-500" /> Ask Spark</p>
-          <p className="muted text-xs">AI Data Assistant</p>
-        </div>
-        <div className="absolute -top-8 -right-2 pointer-events-none">
-          <Mascot size={64} mood={loading ? 'think' : 'wave'} />
-        </div>
-        <button onClick={onClose} aria-label="Close" className="muted z-20 mt-1"><X size={18} /></button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto min-h-[150px] max-h-[40vh] space-y-3 pr-1">
-        {messages.length === 0 && !initialPrompt && (
-          <p className="muted text-sm text-center py-4">Ask me to explain the data, the satellites, or the trends!</p>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-[var(--fg)] text-[var(--bg)]' : 'bg-[var(--card2)] text-[var(--fg)]'}`}>
-              {m.text}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm bg-[var(--card2)] flex gap-1 items-center">
-              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce" />
-              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce [animation-delay:0.2s]" />
-              <span className="w-1.5 h-1.5 bg-[var(--muted)] rounded-full animate-bounce [animation-delay:0.4s]" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="mt-3 flex items-center gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a follow up..."
-          className="field flex-1 rounded-full px-4 py-2 text-sm"
-        />
-        <button type="submit" disabled={loading || !input.trim()} className="btn grid h-9 w-9 place-items-center rounded-full disabled:opacity-50">
-          <Send size={16} />
-        </button>
-      </form>
-    </div>
-  );
-}
-// -------------------------------------------------
-
 export default function Insights() {
   const { place, setCalMonth, showOnMap } = useMap();
   const { resolved } = useSettings();
@@ -168,10 +80,10 @@ export default function Insights() {
   const { scope, target } = sc;
   const isWorld = scope === 'world';
 
-  const [doc, setDoc] = useState(null);          // the worldwide record + method figures
+  const [doc, setDoc] = useState(null);
   const [err, setErr] = useState(null);
   const [tries, setTries] = useState(0);
-  const [area, setArea] = useState({ key: null, status: 'idle', data: null, error: null });  // the record for the chosen place or country
+  const [area, setArea] = useState({ key: null, status: 'idle', data: null, error: null });
   const [areaTries, setAreaTries] = useState(0);
   const [sel, setSel] = useState(null);
   const [hot, setHot] = useState(null);
@@ -188,7 +100,6 @@ export default function Insights() {
     setShowAi(true);
   };
 
-  // Worldwide record (60-second timeout). Needed for the World view and for the method figures in every view.
   useEffect(() => {
     let cancelled = false;
     setErr(null);
@@ -213,7 +124,6 @@ export default function Insights() {
     return () => { cancelled = true; clearTimeout(timeoutId); controller.abort(); };
   }, [tries]);
 
-  // The record for the place or country you chose.
   useEffect(() => {
     if (isWorld || !target.ready) return undefined;
     const ctrl = new AbortController();
@@ -226,11 +136,9 @@ export default function Insights() {
     return () => ctrl.abort();
   }, [isWorld, target.ready, target.key, areaTries]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // never show a result that belongs to a different place than the one selected right now
   const A = area.key === target.key ? area : { status: 'loading', data: null, error: null };
   const S = !isWorld && A.status === 'ready' ? A.data : null;
 
-  // one list of months, whichever scope we are in
   const rows = useMemo(() => {
     if (isWorld) return (doc?.series || []).map((d) => ({ ...d, band: d.source === 'VIIRS' || d.lo == null ? null : [d.lo, d.hi] }));
     if (!S) return [];
@@ -248,7 +156,6 @@ export default function Insights() {
   const row = rows.find((d) => d.month === sel);
   const m = doc?.meta, v = m?.validation;
 
-  // Hotspots: the world, or only the box around the chosen place or country
   useEffect(() => {
     if (!isWorld && !target.ready) return undefined;
     let cancelled = false;
@@ -382,7 +289,7 @@ export default function Insights() {
         `Explain what these validation metrics mean. We have a pooled ratio of ${m.pooled_ratio}x, a raw jump removed of ${v.raw_viirs_bias_pct}%, an R2 of ${v.r2}, and a bias of ${v.bias_pct}%.`,
         `Context: These metrics show how we merged MODIS and VIIRS satellite data to create one continuous record without fake jumps in 2012.`
       )} className="absolute -top-3 -right-3 btn h-8 w-8 grid place-items-center rounded-full shadow-lg" title="Ask AI about this">
-        <Sparkles size={14} className="text-amber-500" />
+        <Sparkles size={14} className="muted" />
       </button>
     </div>
   );
@@ -492,7 +399,7 @@ export default function Insights() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
               <div className="flex gap-2">
-                <button onClick={() => openAiWithPrompt('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="text-amber-500" />Ask AI</button>
+                <button onClick={() => openAiWithPrompt('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="muted" />Ask AI</button>
                 <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
               </div>
             </div>
