@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IconExplore, IconCalendar, IconInsights, IconSettings } from './components/NavIcons';
 import Tour from './components/Tour';
@@ -57,6 +57,22 @@ function LoadingScreen() {
   );
 }
 
+// Redirects "/" → the user's preferred start screen, once, on first load.
+// Deep links (e.g. /calendar, /insights) are left alone.
+function StartupRedirect() {
+  const navigate = useNavigate();
+  const { s } = useSettings();
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return;
+    done.current = true;
+    if (s.startView === 'countries' && window.location.pathname === '/') {
+      navigate('/countries', { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 function Shell() {
   const { pathname } = useLocation();
   const awake = useServerWake();
@@ -74,8 +90,11 @@ function Shell() {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => { log('route', 'now on', pathname); if (pathname !== '/') setSelected(null); }, [pathname, setSelected]);
-  useEffect(() => { if (tour && pathname !== '/') navigate('/'); }, [tour]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Treat /countries (and /country-footprints) as part of the Explore tab, so the rail's "Explore" stays lit.
+  const isMapView = pathname === '/' || pathname === '/countries';
+
+  useEffect(() => { log('route', 'now on', pathname); if (!isMapView) setSelected(null); }, [pathname, isMapView, setSelected]);
+  useEffect(() => { if (tour && !isMapView) navigate('/'); }, [tour]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { log('server', awake ? 'data server is awake' : 'waiting for data server…'); }, [awake]);
   useEffect(() => {
     const probe = document.createElement('div');
@@ -95,8 +114,11 @@ function Shell() {
       <nav className="card flex shrink-0 justify-around border-x-0 border-b-0 py-2 md:w-16 md:flex-col md:items-center md:justify-center md:gap-4 md:border-y-0 md:border-l-0">
         {TABS.map(({ to, label, Icon, tour: t }) => (
           <NavLink key={to} to={to} end={to === '/'} aria-label={label} title={label} data-tour={t}
-            className={({ isActive }) => `grid h-11 w-11 place-items-center rounded-xl ${isActive ? '' : 'muted'}`}>
-            {({ isActive }) => <Icon active={isActive} />}
+            className={({ isActive }) => `grid h-11 w-11 place-items-center rounded-xl ${
+              // Keep the Explore tab highlighted on the countries gallery too
+              isActive || (to === '/' && isMapView) ? '' : 'muted'
+            }`}>
+            {({ isActive }) => <Icon active={isActive || (to === '/' && isMapView)} />}
           </NavLink>
         ))}
       </nav>
@@ -108,8 +130,8 @@ function Shell() {
         )}
 
         <div className="relative min-h-0 flex-1">
-          <div className="absolute inset-0" style={{ visibility: pathname === '/' ? 'visible' : 'hidden', pointerEvents: pathname === '/' ? 'auto' : 'none' }}>
-            <Globe active={pathname === '/'} serverReady={awake} />
+          <div className="absolute inset-0" style={{ visibility: isMapView ? 'visible' : 'hidden', pointerEvents: isMapView ? 'auto' : 'none' }}>
+            <Globe active={isMapView} serverReady={awake} />
           </div>
 
           {!awake && pathname === '/' && (
@@ -125,7 +147,8 @@ function Shell() {
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/advanced" element={<AdvancedInsights />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/country-footprints" element={<CountryFootprints />} />
+            {/* Both paths render the gallery so old links and the new switch both work */}
+            <Route path="/countries" element={<CountryFootprints />} />
             <Route path="/insights/methodology" element={<Methodology />} />
           </Routes>
         </div>
@@ -144,7 +167,12 @@ function Shell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <SettingsProvider><MapProvider><Shell /></MapProvider></SettingsProvider>
+      <SettingsProvider>
+        <MapProvider>
+          <StartupRedirect />
+          <Shell />
+        </MapProvider>
+      </SettingsProvider>
     </BrowserRouter>
   );
 }

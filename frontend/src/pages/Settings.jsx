@@ -74,6 +74,14 @@ export default function Settings() {
           <Row label="Years heatmap colours" hint="Colour-blind safe also keeps its order when printed in grey.">
             <Seg label="Heatmap colours" value={s.ramp} onChange={(v) => set({ ramp: v })} options={[['viridis', 'Colour-blind safe'], ['greys', 'Greyscale']]} />
           </Row>
+          <Row label="Open the app on" hint="Which screen shows first when you launch the app. Globe is the live fire map; Countries is the footprints gallery.">
+            <Seg
+              label="Startup screen"
+              value={s.startView}
+              onChange={(v) => set({ startView: v })}
+              options={[['globe', 'Globe'], ['countries', 'Countries']]}
+            />
+          </Row>
         </Section>
 
         <Section title="Map defaults">
@@ -143,14 +151,14 @@ export default function Settings() {
       </div>
 
       {showNotes && <NotesPanel onClose={() => { setShowNotes(false); countNotes(); }} />}
-      
+
       {showAbout && (
         <Modal onClose={() => setShowAbout(false)} maxW="max-w-3xl">
           <h2 className="mb-6 text-3xl font-bold tracking-tight">The Burner's Archive</h2>
-          
+
           <div className="space-y-6 text-sm leading-relaxed text-[var(--fg)]">
             <p className="text-base">A planetary-scale visualization engine for satellite-detected fire activity. We process over two decades of orbital observations, blending raw telemetry from multiple sensors into a single, unified historical record.</p>
-            
+
             <div>
               <h3 className="mb-2 text-lg font-semibold">The Harmonization Method</h3>
               <p>MODIS (2000-2012) and VIIRS (2012-present) count fires differently. VIIRS is much more sensitive. To prevent a fake "jump" in 2012, our Python pipeline learns how often MODIS misses what VIIRS sees during their overlap years. We apply a complex detection-rate correction to the pre-2012 MODIS data, projecting it onto the VIIRS scale. The result is one continuous timeline where a fire in 2005 is directly comparable to a fire in 2025.</p>

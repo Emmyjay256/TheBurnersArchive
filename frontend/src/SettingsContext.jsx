@@ -3,8 +3,8 @@ import { log } from './debug';
 
 const KEY = 'burners.settings', TOUR_KEY = 'burners.tour.done';
 
-// Removed mapStyle entirely
-export const DEFAULTS = { theme: 'system', mode: 'joint', radiusKm: 50, units: 'km', time: 'local', locateOnStart: true, alerts: true, alertLevel: 'all', ramp: 'viridis', mascot: true };
+// Removed mapStyle entirely. Added startView: 'globe' | 'countries'
+export const DEFAULTS = { theme: 'system', mode: 'joint', radiusKm: 50, units: 'km', time: 'local', locateOnStart: true, alerts: true, alertLevel: 'all', ramp: 'viridis', mascot: true, startView: 'globe' };
 
 const read = () => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { ...DEFAULTS }; } };
 const Ctx = createContext(null);

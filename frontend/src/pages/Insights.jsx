@@ -255,7 +255,7 @@ export default function Insights() {
     </section>
   );
 
-  // ---- AI PROMPTS (Summarized) ----
+  // --- AI PROMPTS (Smart Summaries) ---
   const barsChart = (
     <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}
       onAsk={() => {
@@ -286,7 +286,7 @@ export default function Insights() {
           <Area dataKey="band" stroke="none" fill={C.fg} fillOpacity={0.12} isAnimationActive={false} /><Line dataKey="ratio" stroke={C.fg} strokeWidth={2} dot={false} name="VIIRS ÷ MODIS" /></ComposedChart></ResponsiveContainer></div>
     </Chart>
   );
-  // ---------------------------------
+  // --------------------------------------
 
   const validationTiles = doc && (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 relative">

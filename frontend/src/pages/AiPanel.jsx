@@ -1,4 +1,3 @@
-// src/pages/AiPanel.jsx
 import { useEffect, useRef, useState } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
 import Mascot from '../components/Mascot';
@@ -9,7 +8,14 @@ import ReactMarkdown from 'react-markdown';
 const MASCOT_MOODS = ['think', 'wave', 'cheer', 'sit', 'think', 'worried', 'run', 'dance'];
 
 export default function AiPanel({ onClose, initialPrompt, context }) {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('spark_chat_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [moodIndex, setMoodIndex] = useState(0);
@@ -18,12 +24,19 @@ export default function AiPanel({ onClose, initialPrompt, context }) {
 
   useOutsideClose(panelRef, onClose);
 
+  // Save history to localStorage
+  useEffect(() => {
+    localStorage.setItem('spark_chat_history', JSON.stringify(messages));
+  }, [messages]);
+
+  // Cycle mascot moods
   useEffect(() => {
     if (loading) return;
     const id = setInterval(() => setMoodIndex((prev) => (prev + 1) % MASCOT_MOODS.length), 2000);
     return () => clearInterval(id);
   }, [loading]);
 
+  // Auto-send initial prompt
   useEffect(() => {
     if (initialPrompt && !hasSentRef.current) {
       hasSentRef.current = true;
@@ -31,8 +44,18 @@ export default function AiPanel({ onClose, initialPrompt, context }) {
     }
   }, [initialPrompt]); // eslint-disable-line
 
+  const requestNotification = () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  };
+
   const sendMessage = async (text, isInitial = false) => {
     if (!text.trim() || loading) return;
+    
+    // Ask for notification permission on first send
+    requestNotification();
+    
     const userMsg = text.trim();
     if (!isInitial) setInput('');
     
@@ -49,6 +72,14 @@ export default function AiPanel({ onClose, initialPrompt, context }) {
       if (!res.ok) throw new Error(data.error || 'Failed');
       
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
+      
+      // Show notification when reply arrives
+      if (Notification.permission === "granted" && document.hidden) {
+        new Notification("Spark replied!", {
+          body: "Your AI response is ready in The Burner's Archive.",
+          icon: "/favicon.ico"
+        });
+      }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to my brain. Make sure the backend server has the Gemini key." }]);
     } finally {
