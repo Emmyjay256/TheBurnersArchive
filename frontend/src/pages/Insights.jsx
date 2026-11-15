@@ -89,9 +89,6 @@ export default function Insights() {
   const [hot, setHot] = useState(null);
   const [panel, setPanel] = useState(null);
 
-  // --- AI ---
-  const openAiWithPrompt = (prompt, context) => askAi(prompt, context);
-
   useEffect(() => {
     let cancelled = false;
     setErr(null);
@@ -247,15 +244,14 @@ export default function Insights() {
     </section>
   );
 
-  // --- AI PROMPTS (Smart Summaries) ---
   const barsChart = (
     <Chart title="When fires happen" why={isWorld ? 'Average harmonized activity for each calendar month over the whole record. Your selected month is highlighted.' : `The usual (median) activity for each calendar month in ${sc.label}${S ? `, ${S.years[0]} to ${S.years[1]}` : ''}. Your selected month is highlighted.`}
       onAsk={() => {
         const topMonth = [...seasonal].sort((a, b) => b.value - a.value)[0];
         const bottomMonth = [...seasonal].sort((a, b) => a.value - b.value)[0];
-        openAiWithPrompt(
-          `Explain why fires peak in ${topMonth.name} for ${isWorld ? 'the world' : sc.label}.`, 
-          `Context: The peak fire month is ${topMonth.name} with ${topMonth.value} average cell-days. The quietest month is ${bottomMonth.name} with ${bottomMonth.value}.`
+        askAi(
+          `Explain why fires peak in ${topMonth.name} for ${isWorld ? 'the world' : sc.label}.`,
+          `The peak fire month is ${topMonth.name} with ${topMonth.value} average cell-days. The quietest month is ${bottomMonth.name} with ${bottomMonth.value}.`
         );
       }}>
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
@@ -268,17 +264,13 @@ export default function Insights() {
     <Chart title="The correction, month by month (worldwide)" why="VIIRS sees proportionally more fires in some seasons, so the correction is set per month. The band shows our uncertainty."
       onAsk={() => {
         const maxRatio = Math.max(...ratios.map(r => r.ratio));
-        openAiWithPrompt(
-          `Explain how the VIIRS to MODIS correction ratio works.`, 
-          `Context: The highest ratio is ${maxRatio}x. This means VIIRS sees ${maxRatio} times more fires than MODIS in that month.`
-        );
+        askAi(`Explain how the VIIRS to MODIS correction ratio works.`, `The highest ratio is ${maxRatio}x. This means VIIRS sees ${maxRatio} times more fires than MODIS in that month.`);
       }}>
       <div className="h-52"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={ratios}><CartesianGrid stroke={C.grid} /><XAxis dataKey="name" {...axis} fontSize={11} /><YAxis {...axis} fontSize={11} domain={[0, 'auto']} /><Tooltip {...tip} />
           <Area dataKey="band" stroke="none" fill={C.fg} fillOpacity={0.12} isAnimationActive={false} /><Line dataKey="ratio" stroke={C.fg} strokeWidth={2} dot={false} name="VIIRS ÷ MODIS" /></ComposedChart></ResponsiveContainer></div>
     </Chart>
   );
-  // --------------------------------------
 
   const validationTiles = doc && (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 relative">
@@ -286,10 +278,7 @@ export default function Insights() {
       <Stat label="Raw jump removed" value={v.raw_viirs_bias_pct != null ? `+${v.raw_viirs_bias_pct}%` : 'n/a'} note="false rise if sensors were just joined" />
       <Stat label="Backtest accuracy (R²)" value={v.r2 ?? 'n/a'} note="rebuilding hidden VIIRS years" />
       <Stat label="Backtest bias" value={v.bias_pct != null ? `${v.bias_pct}%` : 'n/a'} note="closer to 0 is better" />
-      <button onClick={() => openAiWithPrompt(
-        `Explain what these validation metrics mean.`, 
-        `Context: Pooled ratio is ${m.pooled_ratio}x, raw jump removed is ${v.raw_viirs_bias_pct}%, R2 is ${v.r2}, bias is ${v.bias_pct}%.`
-      )} className="absolute -top-3 -right-3 btn h-8 w-8 grid place-items-center rounded-full shadow-lg" title="Ask AI about this">
+      <button onClick={() => askAi(`Explain what these validation metrics mean.`, `Pooled ratio is ${m.pooled_ratio}x, raw jump removed is ${v.raw_viirs_bias_pct}%, R2 is ${v.r2}, bias is ${v.bias_pct}%.`)} className="absolute -top-3 -right-3 btn h-8 w-8 grid place-items-center rounded-full shadow-lg" title="Ask AI about this">
         <Sparkles size={14} className="muted" />
       </button>
     </div>
@@ -299,10 +288,7 @@ export default function Insights() {
     <Chart title="How we chose the gap-filling rule" why={`Places VIIRS sees burning year after year while MODIS sees nothing are MODIS-blind. Chosen: ${m.rule_text?.[m.chosen_rule] || m.chosen_rule}.`}
       onAsk={() => {
         const chosen = m.backtest.find(b => b.rule === m.chosen_rule);
-        openAiWithPrompt(
-          `Explain the gap-filling rule selection.`, 
-          `Context: We chose "${m.chosen_rule}" because it had the lowest bias (${chosen?.bias_pct}%) and highest R2 (${chosen?.r2}).`
-        );
+        askAi(`Explain the gap-filling rule selection.`, `We chose "${m.chosen_rule}" because it had the lowest bias (${chosen?.bias_pct}%) and highest R2 (${chosen?.r2}).`);
       }}>
       <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead><tr className="muted text-left text-xs"><th className="py-1.5">Method</th><th>Bias</th><th>Typical error</th><th>R²</th></tr></thead>
@@ -330,9 +316,9 @@ export default function Insights() {
       onAsk={() => {
         const pre2012 = rows.filter(r => r.month < '2012-01');
         const post2012 = rows.filter(r => r.month >= '2012-01');
-        openAiWithPrompt(
-          `Explain the trend in this chart. Why does the data look different before and after 2012?`, 
-          `Context: MODIS was the only satellite before 2012. VIIRS joined in 2012. The average fires before 2012 was ~${Math.round(pre2012.reduce((a,b) => a+(b.harmonized||0),0)/pre2012.length)} cell-days. After 2012, it jumped to ~${Math.round(post2012.reduce((a,b) => a+(b.harmonized||0),0)/post2012.length)}.`
+        askAi(
+          `Explain the trend in this chart. Why does the data look different before and after 2012?`,
+          `MODIS was the only satellite before 2012. VIIRS joined in 2012. The average fires before 2012 was ~${Math.round(pre2012.reduce((a,b) => a+(b.harmonized||0),0)/pre2012.length)} cell-days. After 2012, it jumped to ~${Math.round(post2012.reduce((a,b) => a+(b.harmonized||0),0)/post2012.length)}.`
         );
       }}>
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
@@ -364,10 +350,7 @@ export default function Insights() {
     <Chart title={`Fire activity in ${sc.label}`} why="Tap any month to select it. The bold line is monthly activity on VIIRS's scale (before 2012 it is MODIS corrected place by place). The shaded band is the usual range, the 10th to 90th percentile for that calendar month."
       onAsk={() => {
         const maxRec = [...rows].sort((a,b) => b.value - a.value)[0];
-        openAiWithPrompt(
-          `Explain the trend of fire activity in ${sc.label}.`, 
-          `Context: The highest month was ${maxRec.month} with ${maxRec.value} cell-days. The long-term trend is ${signed(S.trend?.pctPerDecade)} per decade.`
-        );
+        askAi(`Explain the trend of fire activity in ${sc.label}.`, `The highest month was ${maxRec.month} with ${maxRec.value} cell-days. The long-term trend is ${signed(S.trend?.pctPerDecade)} per decade.`);
       }}>
       <div className="h-72"><ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} onClick={(e) => e?.activeLabel && setSel(e.activeLabel)} style={{ cursor: 'pointer' }}>
@@ -385,9 +368,9 @@ export default function Insights() {
     <div className="grid gap-6 md:grid-cols-2">
       {barsChart}
       <Chart title="Busiest years" why={`The five years with the most activity in ${sc.label}, ${S.years[0]} to ${S.years[1]}.`}
-        onAsk={() => openAiWithPrompt(
-          `Explain what made ${S.topYears[0].year} the busiest year for fires in ${sc.label}.`, 
-          `Context: The top years were ${S.topYears.map(t => t.year).join(', ')}. The busiest was ${S.topYears[0].year} with ${S.topYears[0].total.toLocaleString()} cell-days.`
+        onAsk={() => askAi(
+          `Explain what made ${S.topYears[0].year} the busiest year for fires in ${sc.label}.`,
+          `The top years were ${S.topYears.map(t => t.year).join(', ')}. The busiest was ${S.topYears[0].year} with ${S.topYears[0].total.toLocaleString()} cell-days.`
         )}>
         <ol className="space-y-2 text-sm">
           {S.topYears.map((t, i) => <li key={t.year} className="card2 flex items-center gap-3 rounded-2xl p-3"><span className="btn grid h-8 w-8 place-items-center rounded-xl text-xs">{i + 1}</span><span className="flex-1 font-semibold">{t.year}</span><span className="muted">{t.total.toLocaleString()} cell-days</span></li>)}
@@ -410,7 +393,7 @@ export default function Insights() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Insights</h1>
               <div className="flex gap-2">
-                <button onClick={() => openAiWithPrompt('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="muted" />Ask AI</button>
+                <button onClick={() => askAi('', 'User is viewing the Insights page.')} className="ghost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><Sparkles size={16} className="muted" />Ask AI</button>
                 <button onClick={() => navigate('/insights/advanced')} className="btn inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm"><BarChart3 size={16} />Advanced insights</button>
               </div>
             </div>
@@ -421,7 +404,7 @@ export default function Insights() {
 
           {stale && rows.length > 0 && (
             <p className="card rounded-2xl p-4 text-sm" role="alert">
-              This record ends in {label(endMonth)}, {monthsBehind > 12 ? `about ${Math.round(monthsBehind / 12)} years before today` : 'which is recent'}. 
+              This record ends in {label(endMonth)}, {monthsBehind > 12 ? `about ${Math.round(monthsBehind / 12)} years before today` : 'which is recent'}.
             </p>
           )}
 
@@ -439,6 +422,6 @@ export default function Insights() {
           mascot={<Mascot size={60} mood="lounge" className="absolute top-[50px] right-[20px] z-10" />}
         />
       )}
-      </div>
+    </div>
   );
 }
