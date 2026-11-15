@@ -22,11 +22,6 @@ export default function AiHost() {
   }, [pathname, place, radiusKm, polygon, date]);
 
   return (<>
-    {!open && (
-      <button onClick={openAi} aria-label="Ask AI" title="Ask AI" className="btn pointer-events-auto fixed bottom-4 left-4 z-[15] inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm shadow-lg">
-        <Sparkles size={16} /><span className="hidden sm:inline">Ask AI</span>
-      </button>
-    )}
     {open && <AiPanel />}
     {toast && (
       <div role="status" className="glass pointer-events-auto fixed left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full py-2 pl-4 pr-2 text-sm shadow-lg">

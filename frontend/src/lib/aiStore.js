@@ -34,11 +34,47 @@ function showToast(text, isError = false) {
 // askAi('') just opens the panel. askAi('question', 'what is on screen') opens it and sends the question.
 export function askAi(prompt = '', note = '') { openAi(); if (String(prompt).trim()) sendAi(prompt, note); }
 
+// ---- instant answers: no network, no waiting ----
+const SCREEN_NAME = { explore: 'the map', calendar: 'the Burning Calendar', insights: 'Insights', 'advanced-insights': 'Advanced insights', 'country-footprints': 'Country footprints' };
+const placeOf = (env) => {
+  const n = String(env?.place?.name || '').split(',')[0].replace(/\s*\(approximate\)/i, '').trim();
+  return /^your location$/i.test(n) ? 'your location' : n;
+};
+export function suggestionsFor(env = {}) {
+  const p = placeOf(env);
+  const by = {
+    explore: [p ? `Are there fires near ${p} right now?` : 'Are there fires near me right now?', 'What do the flames on the map mean?', 'Which countries burn the most?'],
+    calendar: [p ? `Is this month busier than usual around ${p}?` : 'Is this month busier than usual here?', 'What does the % on a dashed day mean?', 'Which days are likely to have fires?'],
+    insights: [p ? `When is the fire season around ${p}?` : 'When is the fire season here?', 'What does this chart show?', 'Why merge MODIS and VIIRS?'],
+    'advanced-insights': ['Explain this tab in simple words', 'Why did detections jump in 2012?', 'What is fire power (FRP)?'],
+  };
+  return by[env.screen] || ['What can you help me with?', 'Which countries burn the most?', 'What is a fire detection?'];
+}
+export function greetingFor(env = {}) {
+  const p = placeOf(env), s = SCREEN_NAME[env.screen];
+  return `${s ? `You're on ${s}` : 'Hi'}${p ? `, looking at ${p}${env.place?.radiusKm ? ` (${env.place.radiusKm} km)` : ''}` : ''}. Ask me about it, or anything else.`;
+}
+const GREET = /^(hi|hello|hey|hiya|yo|sup|howdy|hola|jambo|habari|oli otya|good (morning|afternoon|evening))[\s!.?,]*$/i;
+const THANKS = /^(thanks|thank you|thx|ty|cheers|asante|webale)[\s!.?]*$/i;
+const BYE = /^(bye|goodbye|see you|cya|later)[\s!.?]*$/i;
+const WHO = /^(who are you|what are you|what is your name|what('s| is) spark|what can you do|help|what can i ask|how can you help)[\s!.?]*$/i;
+function localReply(text, env) {
+  const t = text.trim(), menu = suggestionsFor(env).map((s) => `- ${s}`).join('\n');
+  if (GREET.test(t)) return `Hi! I'm Spark 👋 ${greetingFor(env)}\n\nTry:\n${menu}`;
+  if (THANKS.test(t)) return "You're welcome! Ask me anything else about the fires, the satellites or the data.";
+  if (BYE.test(t)) return 'See you! I will be here when you need me.';
+  if (WHO.test(t)) return `I'm Spark, the assistant of The Burner's Archive. I can explain what you see on each screen, answer questions about fires in any country or around your place, and explain how the satellite data works.\n\nTry:\n${menu}`;
+  return null;
+}
+
 export function sendAi(text, note = '') {
   const t = String(text || '').trim();
   if (!t || state.busy) return;
+  const mine = { role: 'user', text: t, ts: Date.now() };
+  const quick = localReply(t, state.env);
+  if (quick) { set({ messages: [...state.messages, mine, { role: 'ai', text: quick, used: [], ts: Date.now() }], error: null }); return; }
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-  set({ messages: [...state.messages, { role: 'user', text: t, ts: Date.now() }], error: null });
+  set({ messages: [...state.messages, mine], error: null });
   request(note);
 }
 export function retryAi() { if (!state.busy && state.messages.at(-1)?.role === 'user') request(''); }

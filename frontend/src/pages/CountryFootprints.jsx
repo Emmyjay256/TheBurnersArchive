@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, X, Maximize, Minimize } from 'lucide-react';
 import Mascot from '../components/Mascot';
 
 export default function CountryFootprints() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [query, setQuery] = useState('');
   const [countries, setCountries] = useState([]);
   const [selected, setSelected] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
+
+  const onCountries = pathname === '/country-footprints' || pathname === '/countries';
 
   useEffect(() => {
     fetch('/country_maps/country_ranking.csv')
@@ -46,12 +49,7 @@ export default function CountryFootprints() {
           const in_image = cols[8] ? +cols[8] : detections;
 
           if (iso && name) {
-            parsed.push({
-              iso,
-              name,
-              detections,
-              places: in_image
-            });
+            parsed.push({ iso, name, detections, places: in_image });
           }
         }
 
@@ -69,6 +67,12 @@ export default function CountryFootprints() {
     ? countries.filter((c) => c.name.toLowerCase().includes(term))
     : countries;
 
+  const placeholder =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100%" height="100%" fill="#e5e7eb"/><text x="50%" y="50%" font-family="sans-serif" font-size="14" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">No map</text></svg>'
+    );
+
   return (
     <div className="absolute inset-0 z-10 overflow-y-auto bg-[var(--bg)]">
       <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
@@ -80,20 +84,22 @@ export default function CountryFootprints() {
 
           <div className="glass inline-flex rounded-full p-1 shrink-0 md:ml-auto" role="tablist" aria-label="View">
             <button
+              type="button"
               role="tab"
-              aria-selected={false}
+              aria-selected={!onCountries}
               title="Interactive fire map"
-              onClick={() => navigate('/')}
-              className="rounded-full px-3 py-1.5 text-sm font-semibold"
+              onClick={() => { if (onCountries) navigate('/'); }}
+              className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${!onCountries ? 'on' : 'muted hover:opacity-80'}`}
             >
               Globe
             </button>
             <button
+              type="button"
               role="tab"
-              aria-selected
+              aria-selected={onCountries}
               title="Browse fire maps by country"
-              onClick={() => navigate('/country-footprints')}
-              className="on rounded-full px-3 py-1.5 text-sm font-semibold"
+              onClick={() => { if (!onCountries) navigate('/country-footprints'); }}
+              className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${onCountries ? 'on' : 'muted hover:opacity-80'}`}
             >
               Countries
             </button>
@@ -125,7 +131,10 @@ export default function CountryFootprints() {
                 alt={`Fire map of ${c.name}`}
                 className="rounded-xl w-full bg-[var(--card2)] aspect-square object-cover"
                 loading="lazy"
-                onError={(e) => { e.target.style.display = 'none'; }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = placeholder;
+                }}
               />
               <div className="p-2 flex-1 flex flex-col justify-between">
                 <h3 className="font-semibold text-sm truncate" title={c.name}>{c.name}</h3>
@@ -149,19 +158,32 @@ export default function CountryFootprints() {
       {/* Full view Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm cursor-zoom-out"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           onClick={() => setSelected(null)}
         >
           <div
             className="relative flex flex-col items-center justify-center w-full max-h-[95vh] cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`flex justify-center w-full overflow-auto rounded-2xl shadow-2xl bg-white ${isZoomed ? 'max-h-[70vh]' : 'max-h-[60vh]'}`}>
+            <div
+              className={`flex w-full justify-center rounded-2xl shadow-2xl bg-white ${
+                isZoomed ? 'max-h-[75vh] overflow-auto' : 'max-h-[60vh] overflow-hidden'
+              }`}
+            >
               <img
                 src={`/country_maps/maps/${selected.iso}.webp`}
                 alt={`Fire map of ${selected.name}`}
-                onClick={() => setIsZoomed(!isZoomed)}
-                className={`transition-all duration-200 ${isZoomed ? 'max-w-none w-auto h-auto cursor-zoom-out scale-150 origin-center' : 'max-w-full max-h-[60vh] object-contain cursor-zoom-in'}`}
+                onClick={() => setIsZoomed((v) => !v)}
+                draggable={false}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = placeholder;
+                }}
+                className={
+                  isZoomed
+                    ? 'block max-w-none max-h-none cursor-zoom-out select-none'
+                    : 'block max-h-[60vh] max-w-full cursor-zoom-in select-none'
+                }
               />
             </div>
 
@@ -175,13 +197,15 @@ export default function CountryFootprints() {
 
               <div className="flex gap-3 mt-2">
                 <button
-                  onClick={() => setIsZoomed(!isZoomed)}
+                  type="button"
+                  onClick={() => setIsZoomed((v) => !v)}
                   className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2 text-sm text-white transition-colors"
                 >
                   {isZoomed ? <Minimize size={16} /> : <Maximize size={16} />}
-                  {isZoomed ? 'Fit to screen' : 'Zoom in'}
+                  {isZoomed ? 'Fit to screen' : 'Actual size'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelected(null)}
                   className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2 text-sm text-white transition-colors"
                 >

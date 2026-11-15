@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Send, Sparkles, Trash2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Mascot from '../components/Mascot';
-import { useAi, sendAi, retryAi, stopAi, clearAi, closeAi, getAiEnv } from '../lib/aiStore';
+import { useAi, sendAi, retryAi, stopAi, clearAi, closeAi, getAiEnv, suggestionsFor, greetingFor } from '../lib/aiStore';
 
 const MASCOT_MOODS = ['wave', 'cheer', 'sit', 'dance', 'wave', 'run'];
 const SUGGEST = {
@@ -26,7 +26,8 @@ export default function AiPanel() {
   useEffect(() => { const k = (e) => e.key === 'Escape' && closeAi(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
 
   const secs = busy ? Math.max(0, Math.round((Date.now() - since) / 1000)) : 0;
-  const ideas = SUGGEST[getAiEnv().screen] || FALLBACK;
+  const env = getAiEnv();
+  const ideas = suggestionsFor(env);
   const submit = (e) => { e.preventDefault(); if (!input.trim() || busy) return; sendAi(input); setInput(''); };
 
   return (
@@ -44,7 +45,7 @@ export default function AiPanel() {
       <div className="min-h-[120px] flex-1 space-y-3 overflow-y-auto pr-1">
         {messages.length === 0 && !busy && (
           <div className="space-y-2 py-2">
-            <p className="muted text-center text-sm">Ask about the data, the satellites or any country.</p>
+            <p className="text-center text-sm">{greetingFor(env)}</p>
             <div className="flex flex-wrap justify-center gap-2">{ideas.map((s) => <button key={s} onClick={() => sendAi(s)} className="card2 rounded-full px-3 py-1.5 text-xs">{s}</button>)}</div>
           </div>
         )}
