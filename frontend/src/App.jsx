@@ -16,7 +16,6 @@ import Insights from './pages/Insights';
 import { useServerWake } from './hooks/useServerWake';
 import { log } from './debug';
 import Mascot from './components/Mascot';
-import Insights from './pages/Insights';
 import AdvancedInsights from './pages/AdvancedInsights';
 
 const TABS = [
