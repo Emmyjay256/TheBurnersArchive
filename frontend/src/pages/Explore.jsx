@@ -37,7 +37,7 @@ export default function Explore() {
   useEffect(() => { if (selected) setPanel(null); }, [selected]);
   useEffect(() => { const k = (e) => e.key === 'Escape' && setPanel(null); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
 
-  // messages that come from the data feed (warming up, zoom in, could not load) appear as a toast and clear themselves
+  // messages that come from the data feed (warming up, could not load) appear as a toast and clear themselves
   useEffect(() => {
     if (stats.note) setToast({ text: stats.note, sticky: !!stats.warming, from: 'feed' });
     else setToast((t) => (t?.from === 'feed' ? null : t));
@@ -53,7 +53,7 @@ export default function Explore() {
         const j = await (await fetch('https://ipwho.is/')).json();
         if (!j.success) throw new Error(j.message);
         if (settled) return;
-        goTo({ lat: j.latitude, lon: j.longitude, name: `${j.city || j.country} (approximate)` }, 'city');
+        goTo({ lat: j.latitude, lon: j.longitude, name: `${j.city || j.country} (approximate)` }, { range: rangeForRadius(radiusKm) });
         notify(msg);
       } catch (e) { log('geo', 'IP lookup failed:', e); notify('Could not find you. Search for a place instead.'); }
     };
@@ -69,13 +69,13 @@ export default function Explore() {
       (p) => {
         clearTimeout(slow); settled = true;
         log('geo', 'precise fix', { lat: p.coords.latitude, lon: p.coords.longitude, accuracyM: Math.round(p.coords.accuracy) });
-        goTo({ lat: p.coords.latitude, lon: p.coords.longitude, name: 'Your location' }, 'street');
+        goTo({ lat: p.coords.latitude, lon: p.coords.longitude, name: 'Your location' }, { range: rangeForRadius(radiusKm) });
         notify(null);
       },
       (err) => { clearTimeout(slow); approximate(`error ${err.code}: ${err.message}`, 'Showing your approximate area. Allow location for a precise view.'); },
       { timeout: 15000, maximumAge: 60000, enableHighAccuracy: true }
     );
-  }, [goTo]);
+  }, [goTo, radiusKm]);
 
   // Arrived from another page with a place, date or fire: fly there. Otherwise find the user, if Settings allows it.
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function Explore() {
     notify(regionAt(la, lo) ? null : COVERED);
   };
   const choices = radiusChoices(s.units), near = stats.near.live + stats.near.history;
-  const empty = stats.loaded && !stats.warming && !stats.outside && stats.live + stats.history + stats.expected === 0;
+  const empty = stats.loaded && !stats.warming && !stats.outside && !stats.tooWide && stats.live + stats.history + stats.expected === 0;
   const act = (fn) => () => { fn(); };
 
   return (
@@ -152,6 +152,14 @@ export default function Explore() {
               <button onClick={draw.undo} disabled={!drawing.length} className="ghost inline-flex items-center gap-1 rounded-full px-3 py-1 disabled:opacity-40"><Undo2 size={13} />Undo</button>
               <button onClick={finishDrawing} disabled={drawing.length < 3} className="btn inline-flex items-center gap-1 rounded-full px-3 py-1 disabled:opacity-40"><Check size={13} />Finish</button>
               <button onClick={cancelDrawing} className="ghost rounded-full px-3 py-1">Cancel</button>
+            </div>
+          )}
+          {/* A picked past day replaces the live fires, so say so for as long as it is picked (it used to hide silently) */}
+          {date && !drawing && (
+            <div className="glass pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2 text-xs">
+              <CalendarDays size={14} />
+              <span>Showing fires from <b>{fmtDate(date)}</b> only{stats.tooWide ? '. Zoom in to see them.' : '.'}</span>
+              <button onClick={() => setDate(null)} className="btn rounded-full px-3 py-1">Back to live</button>
             </div>
           )}
           <Snackbar message={drawing ? null : toast?.text} sticky={toast?.sticky} onClose={() => setToast(null)} />
