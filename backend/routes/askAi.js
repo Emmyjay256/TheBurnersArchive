@@ -116,11 +116,27 @@ function liveFacts(label, box, circle) {
   return `Live feed for ${label} (last 48 h, ${q.snapshotAgeSec} s old): ${circle ? `${items.length} fire areas within ${circle.km} km` : `${q.totals.live} confirmed detections in the box`}${top ? `; strongest: ${top}` : ''}.`;
 }
 
+const SEASONY = /(season|month|when|peak|quiet|usual|typical|trend|decade|increas|decreas)/i;
+function boxFacts(c) {
+  const [w, s, e, n] = c.bbox || [];
+  if (![w, s, e, n].every(Number.isFinite) || Math.max(e - w, n - s) > 45) return '';   // huge countries are skipped (too slow)
+  try {
+    const x = fire.aoiSummary({ type: 'polygon', pts: [[w, s], [e, s], [e, n], [w, n]] });
+    if (x.unavailable) return '';
+    const med = x.median.map((v) => v ?? 0), order = med.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+    const trend = x.trend?.pctPerDecade == null ? 'not enough years' : `${x.trend.pctPerDecade > 0 ? '+' : ''}${x.trend.pctPerDecade}% per decade`;
+    return `${c.name}, harmonized record inside its bounding box (${x.unit}, VIIRS scale, ${x.years[0]}-${x.years[1]}): fire season peaks in ${order.slice(0, 3).map(([, i]) => MON[i]).join(', ')}, quietest in ${MON[order.at(-1)[1]]}. Usual by month: ${med.map((v, i) => `${MON[i]} ${v}`).join(', ')}. Long-term trend: ${trend}.`;
+  } catch { return ''; }
+}
+
 function retrieve(basis, ctx) {
   const facts = [], used = [];
   const countries = findCountries(basis), world = WORLD.test(basis);
   const here = !!ctx.place && (HERE.test(basis) || (NUMBERS.test(basis) && !countries.length && !world));
-  countries.forEach((c) => { facts.push(c.facts); used.push(c.name); });
+  countries.forEach((c) => {
+    facts.push(c.facts); used.push(c.name);
+    if (SEASONY.test(basis)) { const f = boxFacts(c); if (f) facts.push(f); }
+  });
   if (here) { try { facts.push(placeFacts(ctx.place)); used.push('your area'); } catch (e) { console.error('[ai] place facts', e.message); } }
   if (NOW.test(basis)) {
     try {

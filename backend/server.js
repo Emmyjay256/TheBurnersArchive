@@ -77,36 +77,6 @@ app.get('/api/fires/live', async (req, res) => {
   }
 });
 
-// 4. AI Assistant Endpoint (Securely proxies to Gemini)
-app.post('/api/ask-ai', async (req, res) => {
-  const { prompt, context } = req.body;
-  
-  if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
-  if (!GEMINI_API_KEY) return res.status(500).json({ error: 'Gemini API key is not configured on the server.' });
-
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
-    const response = await axios.post(url, {
-      system_instruction: {
-        parts: [{ text: `You are Spark, the AI guide for The Burner's Archive. You help users understand NASA fire data, MODIS vs VIIRS, and our app's features. Here is the current app context: ${context || 'User is exploring the map.'}` }]
-      },
-      contents: [{ parts: [{ text: prompt }] }]
-    }, {
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY 
-      }
-    });
-
-    const aiText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
-    res.json({ text: aiText });
-
-  } catch (error) {
-    console.error("Gemini API Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "The AI brain is currently offline. Try again later." });
-  }
-});
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Backend API running on port ${PORT}`);
