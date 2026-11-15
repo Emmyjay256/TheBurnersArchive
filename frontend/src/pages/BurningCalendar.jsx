@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Map as MapIcon, GitCompare, X } from 'lucide-react';
 import { useMap } from '../MapContext';
 import { useFormat } from '../lib/format';
 import { useScope } from '../hooks/useScope';
@@ -14,6 +14,7 @@ import { KIND } from '../lib/kinds';
 import { MONTHS, fmtDate, tint } from '../lib/ui';
 import { log } from '../debug';
 import Mascot from '../components/Mascot';
+import CompareView from '../components/CompareView';
 
 const SITTING = 'lounge';   // the mascot pose shown while data loads. Change this one word if she has a different sitting pose.
 const LIKELY_MIN = 0.5;     // a future day is marked suspected when fires burned on/near it in at least half of the past years
@@ -53,8 +54,18 @@ export default function BurningCalendar() {
   const [hour, setHour] = useState(null);
   const [panel, setPanel] = useState(null);
   const [tab, setTab] = useState('daily');
+  const [showCompare, setShowCompare] = useState(false);
   const [yearsError, setYearsError] = useState(null);
   const [fireNames, setFireNames] = useState({});
+
+  const compareRef = useRef(null);
+
+  const openAndScrollToCompare = () => {
+    setShowCompare(true);
+    setTimeout(() => {
+      compareRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
 
   useEffect(() => { if (calMonth) setCalMonth(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -148,8 +159,19 @@ export default function BurningCalendar() {
       <div className="page absolute inset-0 overflow-y-auto">
         <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
           <header className="card rounded-3xl p-5 md:p-7">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Burning Calendar</h1>
-            <p className="muted text-sm">When and where fires burned, day by day, and which days are likely next.</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Burning Calendar</h1>
+                <p className="muted text-sm">When and where fires burned, day by day, and which days are likely next.</p>
+              </div>
+              <button
+                onClick={openAndScrollToCompare}
+                className={`btn flex items-center gap-2 self-start rounded-full px-5 py-2.5 text-sm font-semibold transition-all sm:self-auto ${showCompare ? 'on shadow-md' : ''}`}
+              >
+                <GitCompare size={16} />
+                Compare Years & Regions
+              </button>
+            </div>
             <ScopeBar sc={sc} />
           </header>
 
@@ -165,7 +187,9 @@ export default function BurningCalendar() {
 
           {!isWorld && (
             <div className="card2 inline-flex rounded-full p-1" role="tablist" aria-label="Calendar view">
-              {[['daily', 'Day by day'], ['years', 'Years']].map(([k, t]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-full px-5 py-1.5 text-sm ${tab === k ? 'on font-semibold' : 'muted'}`}>{t}</button>)}
+              {[['daily', 'Day by day'], ['years', 'Years']].map(([k, t]) => (
+                <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-full px-5 py-1.5 text-sm ${tab === k ? 'on font-semibold' : 'muted'}`}>{t}</button>
+              ))}
             </div>
           )}
 
@@ -293,7 +317,7 @@ export default function BurningCalendar() {
                     </>)}
                     <details className="muted mt-3 text-xs">
                       <summary className="cursor-pointer">How to read this</summary>
-                      <p className="mt-2"><b>Fire cell-days:</b> the map is cut into 2 km squares. A square with a confirmed fire on one day counts once, so one huge fire is not counted hundreds of times.</p>
+                      <p className="mt-2"><b>Fire cell-days:</b> the map is cut into 2 km squares. A square with a confirmed fire on one day counts once, so one big fire is not counted hundreds of times.</p>
                       {normal && <p className="mt-1"><b>The grey band</b> is the normal range: the middle 80% of {normal.years[0]} to {normal.years[1]} for this month in this area (the 10th to 90th percentile).{isCurrent ? ` The month is not over, so the band is scaled to the first ${elapsed} of ${dim} days.` : ''}</p>}
                       {!isFutureMonth && <p className="mt-1"><b>The black marker</b> is where this month stands. Left of the band means quieter than usual, inside it means normal, right of it means more active.</p>}
                     </details>
@@ -364,6 +388,36 @@ export default function BurningCalendar() {
                 </>)}
               </aside>
             </div>
+          )}
+
+          {/* Distinct Comparison Section Below Everything */}
+          {showCompare && (
+            <section
+              ref={compareRef}
+              style={{ background: tint(0.06) }}
+              className="mt-10 rounded-3xl border border-[var(--line)] p-5 md:p-8 shadow-sm transition-all"
+            >
+              <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--line)] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--card)]">
+                    <GitCompare size={18} />
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-bold tracking-tight md:text-xl">Compare Years & Regions</h2>
+                    <p className="muted text-xs">Side-by-side fire activity comparison</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCompare(false)}
+                  aria-label="Close comparison"
+                  className="ghost flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium"
+                >
+                  <X size={15} />
+                  Close
+                </button>
+              </div>
+              <CompareView sc={sc} />
+            </section>
           )}
         </div>
       </div>
