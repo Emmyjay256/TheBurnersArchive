@@ -353,7 +353,7 @@ export default function Insights() {
 
           {stale && rows.length > 0 && (
             <p className="card rounded-2xl p-4 text-sm" role="alert">
-              This record ends in {label(endMonth)}, {monthsBehind > 12 ? `about ${Math.round(monthsBehind / 12)} years before today` : 'which is recent'}. Re-run the pipeline for a full record.
+              This record ends in {label(endMonth)}, {monthsBehind > 12 ? `about ${Math.round(monthsBehind / 12)} years before today` : 'which is recent'}. 
             </p>
           )}
 
